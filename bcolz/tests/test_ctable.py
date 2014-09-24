@@ -1752,6 +1752,61 @@ class where_largeDiskTest(whereTest, TestCase):
     disk = True
 
 
+class where_termsTest(MayBeDiskTest):
+    """
+    result = [r.user_id for r in nzlens.where(
+        "(title == 'Tom and Huck (1995)') & (rating == 5)",
+        outcols=['user_id'])
+    ]
+    """
+
+    def test01(self):
+        """Testing where_terms()"""
+        from pandas import DataFrame
+        from prettyprint import pp
+        terms_filter = (
+            ('Country', '==', "'NL'"),
+            # ('City', '==', "'AMS'"),
+            # ('people', 'in', [100, 120, 130]),
+            # ('people', '<', '180'),
+            # ('people', 'in', [400, 180, 190]),
+            ('people', 'not in', [400, 180, 190]),
+        )
+        df  = DataFrame({
+            'Country':['NL',  'NL',  'NL',  'NL',  'ES',  'ES',  'ES' ],
+            'City':   ['AMS', 'ROT', 'AMS', 'AMS', 'BAR', 'MAD', 'GRA'],
+            'people': [100,   120,   190,   200,   300,   400,   500  ]
+        })
+
+        t = bcolz.ctable.fromdataframe(df)
+        # print t.cols
+        pp(t.where_terms(terms_filter))
+        # rt = [r.f0 for r in t.where_terms(barr)]
+        # rl = [i for i in xrange(N) if i <= i * 2]
+        # print "rt->", rt
+        # print "rl->", rl
+
+        # self.assertTrue(rt == rl, "where_terms not working correctly")
+
+
+class where_terms_smallTest(where_termsTest, TestCase):
+    N = 10
+
+
+class where_terms_largeTest(where_termsTest, TestCase):
+    N = 10 * 1000
+
+
+class where_terms_smallDiskTest(where_termsTest, TestCase):
+    N = 10
+    disk = True
+
+
+class where_terms_largeDiskTest(where_termsTest, TestCase):
+    N = 10 * 1000
+    disk = True
+
+
 # This test goes here until a new test_toplevel.py would be created
 class walkTest(MayBeDiskTest, TestCase):
     disk = True
