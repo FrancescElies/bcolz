@@ -919,6 +919,151 @@ class ctable(object):
                 nrow = 0
         yield buf[:nrow]
 
+    def where_terms(self, term_list, outcols=None, limit=None, skip=0):
+        """
+        where_terms(term_list, outcols=None, limit=None, skip=0)
+
+        Iterate over rows where `term_list` is true.
+
+        :param term_list:
+        :param outcols:
+        :param limit:
+        :param skip:
+        :return: :raise ValueError:
+        """
+
+        if type(term_list) not in [list, set, tuple]:
+            raise ValueError("Only term lists are supported")
+
+        eval_string = ''
+        eval_list = []
+
+        for term in term_list:
+            filter_col = term[0]
+            filter_operator = term[1].lower()
+            filter_value = term[2]
+
+            if filter_operator not in ['in', 'not in']:
+                # direct filters should be added to the eval_string
+
+                # add and logic if not the first term
+                if eval_string:
+                    eval_string += ' & '
+
+                eval_string += filter_col + ' ' \
+                               + filter_operator + ' ' \
+                               + str(filter_value)
+
+            elif filter_operator in ['in', 'not in']:
+                # Check input
+                if type(filter_value) not in [list, set, tuple]:
+                    raise ValueError("In selections need lists, sets or tuples")
+
+                if len(filter_value) < 1:
+                    raise ValueError("A value list needs to have values")
+
+                elif len(filter_value) == 1:
+                    # handle as eval
+                    # add and logic if not the first term
+                    if eval_string:
+                        eval_string += ' & '
+
+                    if filter_operator == 'not in':
+                        filter_operator = '!='
+                    else:
+                        filter_operator = '=='
+
+                    eval_string += filter_col + ' ' + \
+                                   filter_operator + ' '
+
+                    filter_value = filter_value[0]
+
+                    if type(filter_value) == str:
+                        filter_value = '"' + filter_value + "'"
+                    else:
+                        filter_value = str(filter_value)
+
+                    eval_string += filter_value
+
+                else:
+
+                    if type(filter_value) in [list, tuple]:
+                        filter_value = set(filter_value)
+
+                    eval_list.append(
+                        (filter_col, filter_operator, filter_value)
+                    )
+            else:
+                raise ValueError(
+                    "Input not correctly formated for eval or list filtering"
+                )
+
+        # TODO: remove print
+        # print('### ', eval_string, eval_list)
+
+        # (1) Evaluate terms in eval
+        # return eval_string, eval_list
+        if eval_string:
+            boolarr = self.eval(eval_string)
+        else:
+            a = np.ones(self.size, dtype=bool)
+            boolarr = bcolz.carray(a)
+
+        # return boolarr
+
+        r_eval_string_len = len(boolarr)
+        # (2) Evaluate other terms like 'in' or 'not in' ...
+        for term in eval_list:
+            name = term[0]
+            col = self.cols[name]
+            operator = term[1]
+            value_set = term[2]
+
+            if operator.lower() == 'in':
+                for i in range(r_eval_string_len):
+                    if boolarr[i] is True:
+                        val = col[i]
+                    if val not in value_set:
+                        boolarr[i] = False
+            elif operator.lower() == 'not in':
+                for i in range(r_eval_string_len):
+                    if boolarr[i] is True:
+                        val = col[i]
+                    if val in value_set:
+                        boolarr[i] = False
+            else:
+                raise ValueError(
+                    "Input not correctly formatted for list filtering"
+                )
+        if outcols is None:
+            outcols = self.names
+
+        # Check outcols
+        if outcols is None:
+            outcols = self.names
+        else:
+            if type(outcols) not in (list, tuple, str):
+                raise ValueError("only list/str is supported for outcols")
+            # Check name validity
+            nt = namedtuple('_nt', outcols, verbose=False)
+            outcols = list(nt._fields)
+            if set(outcols) - set(self.names + ['nrow__']) != set():
+                raise ValueError("not all outcols are real column names")
+
+        # Get iterators for selected columns
+        icols, dtypes = [], []
+        for name in outcols:
+            if name == "nrow__":
+                icols.append(boolarr.wheretrue(limit=limit, skip=skip))
+                dtypes.append((name, np.int_))
+            else:
+                col = self.cols[name]
+                icols.append(col.where(boolarr, limit=limit, skip=skip))
+                dtypes.append((name, col.dtype))
+        dtype = np.dtype(dtypes)
+
+        return self._iter(icols, dtype)
+
     def __iter__(self):
         return self.iter(0, self.len, 1)
 
