@@ -1760,7 +1760,7 @@ class where_termsTest(MayBeDiskTest):
     ]
     """
 
-    def test01(self):
+    def test00_draft(self):
         """Testing where_terms()"""
         from pandas import DataFrame
         from prettyprint import pp
@@ -1773,20 +1773,42 @@ class where_termsTest(MayBeDiskTest):
             ('people', 'not in', [400, 180, 190]),
         )
         df  = DataFrame({
-            'Country':['NL',  'NL',  'NL',  'NL',  'ES',  'ES',  'ES' ],
             'City':   ['AMS', 'ROT', 'AMS', 'AMS', 'BAR', 'MAD', 'GRA'],
+            'Country':['NL',  'NL',  'NL',  'NL',  'ES',  'ES',  'ES' ],
             'people': [100,   120,   190,   200,   300,   400,   500  ]
         })
+        # expected outputs
+        e_countries =  ['NL',  'NL',  'NL' ]
+        e_cities = ['AMS', 'ROT', 'AMS']
+        e_nums =   [100,   120,   200  ]
 
         t = bcolz.ctable.fromdataframe(df)
         # print t.cols
-        pp(t.where_terms(terms_filter))
+        for row, e_country, e_city, e_num in \
+                zip(t.where_terms(terms_filter), e_countries, e_cities, e_nums):
+            # print row[0], row[1], row[2]
+            self.assertTrue(row[0] == e_city,
+                            "where_terms not working correctly")
+            self.assertTrue(row[1] == e_country,
+                            "where_terms not working correctly")
+            self.assertTrue(row[2] == e_num,
+                            "where_terms not working correctly")
+
+
         # rt = [r.f0 for r in t.where_terms(barr)]
         # rl = [i for i in xrange(N) if i <= i * 2]
         # print "rt->", rt
         # print "rl->", rl
 
         # self.assertTrue(rt == rl, "where_terms not working correctly")
+
+    def test_00(self):
+        """Testing where_terms()"""
+        N = self.N
+        ra = np.fromiter(((i, i * 2., i * 3)
+                          for i in xrange(N)), dtype='i4,f8,i8')
+        t = bcolz.ctable(ra, rootdir=self.rootdir)
+        print t
 
 
 class where_terms_smallTest(where_termsTest, TestCase):
