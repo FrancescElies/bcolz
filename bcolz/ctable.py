@@ -1023,14 +1023,14 @@ class ctable(object):
                 for i in range(r_eval_string_len):
                     if boolarr[i] is True:
                         val = col[i]
-                    if val not in value_set:
-                        boolarr[i] = False
+                        if val not in value_set:
+                            boolarr[i] = False
             elif operator.lower() == 'not in':
                 for i in range(r_eval_string_len):
                     if boolarr[i] is True:
                         val = col[i]
-                    if val in value_set:
-                        boolarr[i] = False
+                        if val in value_set:
+                            boolarr[i] = False
             else:
                 raise ValueError(
                     "Input not correctly formatted for list filtering"
