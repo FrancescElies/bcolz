@@ -1808,7 +1808,15 @@ class where_termsTest(MayBeDiskTest):
         ra = np.fromiter(((i, i * 2., i * 3)
                           for i in xrange(N)), dtype='i4,f8,i8')
         t = bcolz.ctable(ra, rootdir=self.rootdir)
-        print t
+        terms_filter = (
+            ('f0', '>=', 4),
+            ('f2', 'in', [15, 21, 18])
+        )
+        rt =  [r for r in t.where_terms(terms_filter)]
+        # rt = [r for r in t.where('4+f1 > f2', outcols=['nrow__', 'f2', 'f0'],
+        #                          limit=1, skip=2)]
+        rl = [(i, i * 2, i * 3) for i in xrange(N) if ( i >= 4 ) and ( i * 3 in [15, 21, 18] )]
+        self.assertTrue(rt == rl, "where_terms not working correctly")
 
 
 class where_terms_smallTest(where_termsTest, TestCase):
