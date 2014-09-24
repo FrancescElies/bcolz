@@ -1802,8 +1802,8 @@ class where_termsTest(MayBeDiskTest):
 
         # self.assertTrue(rt == rl, "where_terms not working correctly")
 
-    def test_00(self):
-        """Testing where_terms()"""
+    def test_00a(self):
+        """Testing where_terms() with 'in' list statement"""
         N = self.N
         ra = np.fromiter(((i, i * 2., i * 3)
                           for i in xrange(N)), dtype='i4,f8,i8')
@@ -1812,10 +1812,28 @@ class where_termsTest(MayBeDiskTest):
             ('f0', '>=', 4),
             ('f2', 'in', [15, 21, 18])
         )
-        rt =  [r for r in t.where_terms(terms_filter)]
+        rt = [r for r in t.where_terms(terms_filter)]
         # rt = [r for r in t.where('4+f1 > f2', outcols=['nrow__', 'f2', 'f0'],
-        #                          limit=1, skip=2)]
-        rl = [(i, i * 2, i * 3) for i in xrange(N) if ( i >= 4 ) and ( i * 3 in [15, 21, 18] )]
+        # limit=1, skip=2)]
+        rl = [(i, i * 2, i * 3) for i in xrange(N)
+              if ( i >= 4 ) and ( i * 3 in [15, 21, 18] )]
+        self.assertTrue(rt == rl, "where_terms not working correctly")
+
+    def test_00b(self):
+        """Testing where_terms() with 'not in' list statement"""
+        N = self.N
+        ra = np.fromiter(((i, i * 2., i * 3)
+                          for i in xrange(N)), dtype='i4,f8,i8')
+        t = bcolz.ctable(ra, rootdir=self.rootdir)
+        terms_filter = (
+            ('f0', '>=', 4),
+            ('f2', 'not in', [15, 21, 18])
+        )
+        rt = [r for r in t.where_terms(terms_filter)]
+        # rt = [r for r in t.where('4+f1 > f2', outcols=['nrow__', 'f2', 'f0'],
+        # limit=1, skip=2)]
+        rl = [(i, i * 2, i * 3) for i in xrange(N)
+              if ( i >= 4 ) and ( i * 3 not in [15, 21, 18] )]
         self.assertTrue(rt == rl, "where_terms not working correctly")
 
 
