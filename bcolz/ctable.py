@@ -1024,6 +1024,9 @@ class ctable(object):
                 for i in range(r_eval_string_len):
                     if boolarr[i] is True:
                         val = col[i]
+                        # numpy 0d array work around
+                        if type(val) == np.ndarray:
+                            val = val[()]
                         # print('--('+str(i)+')', val, val.__class__,
                         #           value_set, value_set.__class__,
                         #           col[i], col[i].__class__)
@@ -1033,6 +1036,9 @@ class ctable(object):
                 for i in range(r_eval_string_len):
                     if boolarr[i] is True:
                         val = col[i]
+                        # numpy 0d array work around
+                        if type(val) == np.ndarray:
+                            val = val[()]
                         if val in value_set:
                             boolarr[i] = False
             else:
