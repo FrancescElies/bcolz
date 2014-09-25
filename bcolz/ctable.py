@@ -1020,9 +1020,13 @@ class ctable(object):
             value_set = term[2]
 
             if operator.lower() == 'in':
+                # i = np.dtype('uint64')
                 for i in range(r_eval_string_len):
                     if boolarr[i] is True:
                         val = col[i]
+                        # print('--('+str(i)+')', val, val.__class__,
+                        #           value_set, value_set.__class__,
+                        #           col[i], col[i].__class__)
                         if val not in value_set:
                             boolarr[i] = False
             elif operator.lower() == 'not in':
@@ -1061,7 +1065,6 @@ class ctable(object):
                 icols.append(col.where(boolarr, limit=limit, skip=skip))
                 dtypes.append((name, col.dtype))
         dtype = np.dtype(dtypes)
-
         return self._iter(icols, dtype)
 
     def __iter__(self):
