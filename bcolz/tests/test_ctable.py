@@ -1854,6 +1854,10 @@ class where_terms_largeDiskTest(where_termsTest, TestCase):
     N = 10 * 1000
     disk = True
 
+class where_terms_veryLargeDiskTest(where_termsTest, TestCase):
+    N = 10 * 10000
+    disk = True
+
 
 # This test goes here until a new test_toplevel.py would be created
 class walkTest(MayBeDiskTest, TestCase):
