@@ -18,7 +18,6 @@ import json
 import datetime
 
 import numpy as np
-cimport numpy as np
 import cython
 
 import bcolz
@@ -2606,29 +2605,42 @@ cdef class carray:
         fullrepr = header + str(self)
         return fullrepr
 
-cpdef carray_is_in(carray col, set value_set, carray boolarr, bint reverse):
-    cdef unsigned long i
+def where_terms_loop(boolarr, eval_list, cols):
+    r_eval_string_len = len(boolarr)
+    # (2) Evaluate other terms like 'in' or 'not in' ...
 
-    col_len = len(col)
+    for term in eval_list:
+        name = term[0]
+        col = cols[name]
+        operator = term[1]
+        value_set = term[2]
 
-    if not reverse:
-        for i in range(col_len):
-            if boolarr[i] is True:
-                val = col[i]
-                # numpy 0d array work around
-                if type(val) == np.ndarray:
-                    val = val[()]
-                if val not in value_set:
-                    boolarr[i] = False
-    else:
-        for i in range(col_len):
-            if boolarr[i] is True:
-                val = col[i]
-                # numpy 0d array work around
-                if type(val) == np.ndarray:
-                    val = val[()]
-                if val in value_set:
-                    boolarr[i] = False
+        if operator.lower() == 'in':
+            # i = np.dtype('uint64')
+            for i in range(r_eval_string_len):
+                if boolarr[i] is True:
+                    val = col[i]
+                    # numpy 0d array work around
+                    if type(val) == np.ndarray:
+                        val = val[()]
+                    # print('--('+str(i)+')', val, val.__class__,
+                    #           value_set, value_set.__class__,
+                    #           col[i], col[i].__class__)
+                    if val not in value_set:
+                        boolarr[i] = False
+        elif operator.lower() == 'not in':
+            for i in range(r_eval_string_len):
+                if boolarr[i] is True:
+                    val = col[i]
+                    # numpy 0d array work around
+                    if type(val) == np.ndarray:
+                        val = val[()]
+                    if val in value_set:
+                        boolarr[i] = False
+        else:
+            raise ValueError(
+                "Input not correctly formatted for list filtering"
+            )
 
 ## Local Variables:
 ## mode: python
