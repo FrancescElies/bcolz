@@ -18,6 +18,7 @@ import json
 import datetime
 
 import numpy as np
+cimport numpy as np
 import cython
 
 import bcolz
@@ -2605,7 +2606,29 @@ cdef class carray:
         fullrepr = header + str(self)
         return fullrepr
 
+cpdef carray_is_in(carray col, set value_set, carray boolarr, bint reverse):
+    cdef unsigned long i
 
+    col_len = len(col)
+
+    if not reverse:
+        for i in range(col_len):
+            if boolarr[i] is True:
+                val = col[i]
+                # numpy 0d array work around
+                if type(val) == np.ndarray:
+                    val = val[()]
+                if val not in value_set:
+                    boolarr[i] = False
+    else:
+        for i in range(col_len):
+            if boolarr[i] is True:
+                val = col[i]
+                # numpy 0d array work around
+                if type(val) == np.ndarray:
+                    val = val[()]
+                if val in value_set:
+                    boolarr[i] = False
 
 ## Local Variables:
 ## mode: python

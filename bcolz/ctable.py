@@ -18,6 +18,7 @@ import os
 import os.path
 import shutil
 from .py2help import _inttypes, imap, xrange
+from bcolz.carray_ext import carray_is_in
 
 _inttypes += (np.integer,)
 islice = itertools.islice
@@ -995,11 +996,8 @@ class ctable(object):
                     )
             else:
                 raise ValueError(
-                    "Input not correctly formated for eval or list filtering"
+                    "Input not correctly formatted for eval or list filtering"
                 )
-
-        # TODO: remove print
-        # print('### ', eval_string, eval_list)
 
         # (1) Evaluate terms in eval
         # return eval_string, eval_list
@@ -1009,42 +1007,26 @@ class ctable(object):
             a = np.ones(self.size, dtype=bool)
             boolarr = bcolz.carray(a)
 
-        # return boolarr
-
-        r_eval_string_len = len(boolarr)
         # (2) Evaluate other terms like 'in' or 'not in' ...
         for term in eval_list:
+
             name = term[0]
             col = self.cols[name]
-            operator = term[1]
-            value_set = term[2]
 
-            if operator.lower() == 'in':
-                # i = np.dtype('uint64')
-                for i in range(r_eval_string_len):
-                    if boolarr[i] is True:
-                        val = col[i]
-                        # numpy 0d array work around
-                        if type(val) == np.ndarray:
-                            val = val[()]
-                        # print('--('+str(i)+')', val, val.__class__,
-                        #           value_set, value_set.__class__,
-                        #           col[i], col[i].__class__)
-                        if val not in value_set:
-                            boolarr[i] = False
-            elif operator.lower() == 'not in':
-                for i in range(r_eval_string_len):
-                    if boolarr[i] is True:
-                        val = col[i]
-                        # numpy 0d array work around
-                        if type(val) == np.ndarray:
-                            val = val[()]
-                        if val in value_set:
-                            boolarr[i] = False
+            operator = term[1]
+            if operator.lower() == 'not in':
+                reverse = True
+            elif operator.lower() == 'in':
+                reverse = False
             else:
                 raise ValueError(
                     "Input not correctly formatted for list filtering"
                 )
+
+            value_set = set(term[2])
+
+            carray_is_in(col, value_set, boolarr, reverse)
+
         if outcols is None:
             outcols = self.names
 
@@ -1071,6 +1053,7 @@ class ctable(object):
                 icols.append(col.where(boolarr, limit=limit, skip=skip))
                 dtypes.append((name, col.dtype))
         dtype = np.dtype(dtypes)
+
         return self._iter(icols, dtype)
 
     def __iter__(self):
