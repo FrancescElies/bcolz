@@ -18,7 +18,7 @@ import os
 import os.path
 import shutil
 from .py2help import _inttypes, imap, xrange
-from bcolz.carray_ext import where_terms_loop
+from bcolz.carray_ext import carray_is_in
 
 _inttypes += (np.integer,)
 islice = itertools.islice
@@ -996,7 +996,7 @@ class ctable(object):
                     )
             else:
                 raise ValueError(
-                    "Input not correctly formated for eval or list filtering"
+                    "Input not correctly formatted for eval or list filtering"
                 )
 
         # TODO: remove print
@@ -1012,7 +1012,27 @@ class ctable(object):
 
         # return boolarr
 
-        where_terms_loop(boolarr, eval_list, self.cols)
+        r_eval_string_len = len(boolarr)
+        # (2) Evaluate other terms like 'in' or 'not in' ...
+
+        for term in eval_list:
+
+            name = term[0]
+            col = cols[name]
+
+            operator = term[1]
+            if operator.lower() == 'not in':
+                reverse = True
+            elif operator.lower() == 'in':
+                reverse = False
+            else:
+                raise ValueError(
+                    "Input not correctly formatted for list filtering"
+                )
+
+            value_set = set(term[2])
+
+            carray_is_in(col, value_set, boolarr, reverse)
 
         if outcols is None:
             outcols = self.names
