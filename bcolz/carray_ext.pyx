@@ -2612,16 +2612,12 @@ cpdef carray_is_in(carray col, set value_set, carray boolarr, bint reverse):
     col_len = len(col)
 
     if not reverse:
-        # i = np.dtype('uint64')
         for i in range(col_len):
             if boolarr[i] is True:
                 val = col[i]
                 # numpy 0d array work around
                 if type(val) == np.ndarray:
                     val = val[()]
-                # print('--('+str(i)+')', val, val.__class__,
-                #           value_set, value_set.__class__,
-                #           col[i], col[i].__class__)
                 if val not in value_set:
                     boolarr[i] = False
     else:

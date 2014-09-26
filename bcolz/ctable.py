@@ -999,9 +999,6 @@ class ctable(object):
                     "Input not correctly formatted for eval or list filtering"
                 )
 
-        # TODO: remove print
-        # print('### ', eval_string, eval_list)
-
         # (1) Evaluate terms in eval
         # return eval_string, eval_list
         if eval_string:
@@ -1010,11 +1007,7 @@ class ctable(object):
             a = np.ones(self.size, dtype=bool)
             boolarr = bcolz.carray(a)
 
-        # return boolarr
-
-        r_eval_string_len = len(boolarr)
         # (2) Evaluate other terms like 'in' or 'not in' ...
-
         for term in eval_list:
 
             name = term[0]
@@ -1060,8 +1053,6 @@ class ctable(object):
                 icols.append(col.where(boolarr, limit=limit, skip=skip))
                 dtypes.append((name, col.dtype))
         dtype = np.dtype(dtypes)
-
-
 
         return self._iter(icols, dtype)
 
