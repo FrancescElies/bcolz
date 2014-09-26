@@ -18,6 +18,7 @@ import json
 import datetime
 
 import numpy as np
+cimport numpy as np
 import cython
 
 import bcolz
@@ -2605,8 +2606,9 @@ cdef class carray:
         fullrepr = header + str(self)
         return fullrepr
 
-cpdef where_terms_loop(boolarr, eval_list, cols):
+cpdef where_terms_loop(carray boolarr, eval_list, cols):
     cdef unsigned long i
+
     r_eval_string_len = len(boolarr)
     # (2) Evaluate other terms like 'in' or 'not in' ...
 
