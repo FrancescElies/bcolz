@@ -1018,7 +1018,7 @@ class ctable(object):
         for term in eval_list:
 
             name = term[0]
-            col = cols[name]
+            col = self.cols[name]
 
             operator = term[1]
             if operator.lower() == 'not in':
