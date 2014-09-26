@@ -2606,6 +2606,7 @@ cdef class carray:
         return fullrepr
 
 def where_terms_loop(boolarr, eval_list, cols):
+    cdef unsigned long i
     r_eval_string_len = len(boolarr)
     # (2) Evaluate other terms like 'in' or 'not in' ...
 
