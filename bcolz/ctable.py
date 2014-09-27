@@ -1091,19 +1091,13 @@ class ctable(object):
 
         prefix = 'bcolz_groupby_'
         for row in self:
-            # print row
-            # get group id
             group_id = {}
             for col in cols:
-                # print 'col', col
                 pos = self.names.index(col)
                 group_id[col] = row[pos]
             if self._hash_dict(group_id) not in index_groups:
                 rootdir = tempfile.mkdtemp(prefix=prefix)
                 os.rmdir(rootdir)  # groupby needs this cleared
-                # todo: dynamic
-                # t = bcolz.ctable(columns=(
-                # t = bcolz.ctable(columns=([list(x) for x in (self.cols._cols[name] for name in self.cols.names)]), names=self.cols.names, rootdir=rootdir)
                 t = bcolz.ctable(
                     columns=[[x] for x in row],
                     names=self.cols.names,
@@ -1119,6 +1113,7 @@ class ctable(object):
             else:
                 t = index_groups[self._hash_dict(group_id)]['ctable']
                 t.append([[x] for x in row])
+
         # -- print grouped by --
         # for key in index_groups:
         #     for row in index_groups[key]['ctable']:
