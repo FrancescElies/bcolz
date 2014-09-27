@@ -1060,7 +1060,11 @@ class ctable(object):
 
 
     def _hash_dict(self, group_id):
-        return hash(frozenset(group_id.items()))
+        if isinstance(group_id.values()[0], dict):
+            return hash(frozenset(group_id.keys()[0])) + \
+                   hash(frozenset(group_id.values()[0]))
+        else:
+            return hash(frozenset(group_id.items()))
 
     def _groupby_sum(self, *args):
         sum = 0.0
@@ -1068,12 +1072,13 @@ class ctable(object):
             sum += item
         return sum
 
-    def _calc_aggs(self, aggs, agg_field_name, group_hash_id, row):
+    def _calc_aggs(self, aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row):
         # agg_name = group_hash_id
         func_and_paras = agg_field_name.values()[0]
         function = func_and_paras.keys()[0]
         in_fields = func_and_paras.values()[0]
-
+        agg_hash_id = self._hash_dict(agg_field_name) + group_hash_id
+        inv_aggs_hash_ids[agg_hash_id] = agg_field_name, group_id
         if function == 'sum':
             f = self._groupby_sum
         else:
@@ -1083,7 +1088,7 @@ class ctable(object):
         for field in in_fields:
             pos = self.names.index(field)
             dependency_fields.append(row[pos])
-        aggs[group_hash_id] += f(*dependency_fields)
+        aggs[agg_hash_id] += f(*dependency_fields)
 
     def groupby(self, cols, agg_fields):
         import glob
@@ -1097,7 +1102,7 @@ class ctable(object):
 
         index_groups = defaultdict(dict)
         aggs = defaultdict(float)
-        inv_index_group_hash_ids = {}
+        inv_aggs_hash_ids = {}
 
         # # Check input
         for agg_field in agg_fields:
@@ -1117,7 +1122,6 @@ class ctable(object):
             group_hash_id = self._hash_dict(group_id)
 
             if group_hash_id not in index_groups:
-                inv_index_group_hash_ids[group_hash_id] = group_id
                 rootdir = tempfile.mkdtemp(prefix=prefix)
                 os.rmdir(rootdir)  # groupby needs this cleared
                 t = bcolz.ctable(
@@ -1134,14 +1138,14 @@ class ctable(object):
                     }
                 # update calculated aggregations
                 for agg_field_name in agg_fields:
-                    self._calc_aggs(aggs, agg_field_name, group_hash_id, row)
+                    self._calc_aggs(aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row)
             else:
                 t = index_groups[group_hash_id]['ctable']
                 t.append([[x] for x in row])
 
                 # update calculated aggregations
                 for agg_field_name in agg_fields:
-                    self._calc_aggs(aggs, agg_field_name, group_hash_id, row)
+                    self._calc_aggs(aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row)
 
                 # -- print grouped by --
                 # for key in index_groups:
@@ -1156,7 +1160,7 @@ class ctable(object):
                 shutil.rmtree(dir_)
 
         # Transform output to pandas
-        return aggs, inv_index_group_hash_ids
+        return aggs, inv_aggs_hash_ids
 
 
     def __iter__(self):
