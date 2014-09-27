@@ -1062,6 +1062,12 @@ class ctable(object):
     def _hash_dict(self, group_id):
         return hash(frozenset(group_id.items()))
 
+    def _groupby_sum(self, *args):
+        sum = 0.0
+        for item in args:
+            sum += item
+        return sum
+
     def groupby(self, cols, agg_fields):
         import tempfile
         from collections import defaultdict
