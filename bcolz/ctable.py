@@ -1069,19 +1069,17 @@ class ctable(object):
         return sum
 
     def groupby(self, cols, agg_fields):
+        import glob
         import tempfile
         from collections import defaultdict
-        from prettyprint import pp
 
         assert isinstance(cols, list)
         assert cols != []
         assert isinstance(agg_fields, list)
         assert agg_fields != {}
-        index_groups = defaultdict(dict)
 
-        calculated_fields = []
-        for agg_field in agg_fields:
-            calculated_fields.extend(agg_field.keys())
+        index_groups = defaultdict(dict)
+        aggs = defaultdict(float)
 
         # # Check input
         for agg_field in agg_fields:
@@ -1091,6 +1089,19 @@ class ctable(object):
 
         prefix = 'bcolz_groupby_'
         for row in self:
+            print row
+            for item in agg_fields:
+                agg_name = item.keys()[0]
+                func_and_paras = item.values()[0]
+                function = func_and_paras.keys()[0]
+                in_fields = func_and_paras.values()[0]
+
+                dependency_fields = []
+                for field in in_fields:
+                    pos = self.names.index(field)
+                    dependency_fields.append(row[pos])
+                aggs[agg_name] += self._groupby_sum(*dependency_fields)
+
             group_id = {}
             for col in cols:
                 pos = self.names.index(col)
@@ -1114,11 +1125,20 @@ class ctable(object):
                 t = index_groups[self._hash_dict(group_id)]['ctable']
                 t.append([[x] for x in row])
 
-        # -- print grouped by --
-        # for key in index_groups:
-        #     for row in index_groups[key]['ctable']:
-        #         print row
-        #     pp(index_groups[key]['group_id'])
+                # -- print grouped by --
+                # for key in index_groups:
+                #     for row in index_groups[key]['ctable']:
+                #         print row
+                #     pp(index_groups[key]['group_id'])
+
+        # remove temporary folders
+        for idexed_group in index_groups.values():
+            t = idexed_group['ctable']
+            for dir_ in glob.glob(t.rootdir+'*'):
+                shutil.rmtree(dir_)
+
+        # Transform output to pandas
+        return aggs
 
 
     def __iter__(self):
