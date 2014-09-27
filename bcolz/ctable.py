@@ -1082,7 +1082,9 @@ class ctable(object):
         if function == 'sum':
             f = self._groupby_sum
         else:
-            raise ValueError('Aggregation not available')
+            raise ValueError(
+                u'Aggregation {0:s} not available'.format(function)
+            )
 
         dependency_fields = []
         for field in in_fields:
