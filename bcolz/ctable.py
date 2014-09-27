@@ -1056,6 +1056,115 @@ class ctable(object):
 
         return self._iter(icols, dtype)
 
+
+
+
+    def _hash_dict(self, group_id):
+        if isinstance(group_id.values()[0], dict):
+            return hash(frozenset(group_id.keys()[0])) + \
+                   hash(frozenset(group_id.values()[0]))
+        else:
+            return hash(frozenset(group_id.items()))
+
+    def _groupby_sum(self, *args):
+        sum = 0.0
+        for item in args:
+            sum += item
+        return sum
+
+    def _calc_aggs(self, aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row):
+        # agg_name = group_hash_id
+        func_and_paras = agg_field_name.values()[0]
+        function = func_and_paras.keys()[0]
+        in_fields = func_and_paras.values()[0]
+        agg_hash_id = self._hash_dict(agg_field_name) + group_hash_id
+        inv_aggs_hash_ids[agg_hash_id] = agg_field_name, group_id
+        if function == 'sum':
+            f = self._groupby_sum
+        else:
+            raise ValueError(
+                u'Aggregation {0:s} not available'.format(function)
+            )
+
+        dependency_fields = []
+        for field in in_fields:
+            pos = self.names.index(field)
+            dependency_fields.append(row[pos])
+        aggs[agg_hash_id] += f(*dependency_fields)
+
+    def groupby(self, cols, agg_fields):
+        import glob
+        import tempfile
+        from collections import defaultdict
+
+        assert isinstance(cols, list)
+        assert cols != []
+        assert isinstance(agg_fields, list)
+        assert agg_fields != {}
+
+        index_groups = defaultdict(dict)
+        aggs = defaultdict(float)
+        inv_aggs_hash_ids = {}
+
+        # # Check input
+        for agg_field in agg_fields:
+            assert agg_field not in cols
+        for col in cols:
+            assert col in self.names
+
+
+        prefix = 'bcolz_groupby_'
+        for row in self:
+            group_id = {}
+
+            for col in cols:
+                pos = self.names.index(col)
+                group_id[col] = row[pos]
+
+            group_hash_id = self._hash_dict(group_id)
+
+            if group_hash_id not in index_groups:
+                rootdir = tempfile.mkdtemp(prefix=prefix)
+                os.rmdir(rootdir)  # groupby needs this cleared
+                t = bcolz.ctable(
+                    columns=[[x] for x in row],
+                    names=self.cols.names,
+                    rootdir=rootdir
+                )
+
+                # index the the new created ctable for future use
+                index_groups[group_hash_id] = \
+                    {
+                        'group_id': group_id,
+                        'ctable': t
+                    }
+                # update calculated aggregations
+                for agg_field_name in agg_fields:
+                    self._calc_aggs(aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row)
+            else:
+                t = index_groups[group_hash_id]['ctable']
+                t.append([[x] for x in row])
+
+                # update calculated aggregations
+                for agg_field_name in agg_fields:
+                    self._calc_aggs(aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row)
+
+                # -- print grouped by --
+                # for key in index_groups:
+                #     for row in index_groups[key]['ctable']:
+                #         print row
+                #     pp(index_groups[key]['group_id'])
+
+        # remove temporary folders
+        for idexed_group in index_groups.values():
+            t = idexed_group['ctable']
+            for dir_ in glob.glob(t.rootdir+'*'):
+                shutil.rmtree(dir_)
+
+        # Transform output to pandas
+        return aggs, inv_aggs_hash_ids
+
+
     def __iter__(self):
         return self.iter(0, self.len, 1)
 
