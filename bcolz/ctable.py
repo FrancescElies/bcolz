@@ -1069,18 +1069,16 @@ class ctable(object):
 
         assert isinstance(cols, list)
         assert cols != []
-        assert isinstance(agg_fields, dict)
+        assert isinstance(agg_fields, list)
         assert agg_fields != {}
         index_groups = defaultdict(dict)
 
-        # # print 'cols', cols
-        # # print 'agg_fields', agg_fields
-        # tmp_fields = []
-        # tmp_fields += cols
-        # tmp_fields += agg_fields.keys()
+        calculated_fields = []
+        for agg_field in agg_fields:
+            calculated_fields.extend(agg_field.keys())
 
         # # Check input
-        for agg_field in agg_fields.keys():
+        for agg_field in agg_fields:
             assert agg_field not in cols
         for col in cols:
             assert col in self.names
