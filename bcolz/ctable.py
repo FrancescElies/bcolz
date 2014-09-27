@@ -1090,10 +1090,12 @@ class ctable(object):
         prefix = 'bcolz_groupby_'
         for row in self:
             group_id = {}
+            group_hash_id = self._hash_dict(group_id)
+
             for col in cols:
                 pos = self.names.index(col)
                 group_id[col] = row[pos]
-            if self._hash_dict(group_id) not in index_groups:
+            if group_hash_id not in index_groups:
                 rootdir = tempfile.mkdtemp(prefix=prefix)
                 os.rmdir(rootdir)  # groupby needs this cleared
                 t = bcolz.ctable(
@@ -1103,7 +1105,7 @@ class ctable(object):
                 )
 
                 # index the the new created ctable for future use
-                index_groups[self._hash_dict(group_id)] = \
+                index_groups[group_hash_id] = \
                     {
                         'group_id': group_id,
                         'ctable': t
@@ -1121,7 +1123,7 @@ class ctable(object):
                 #         dependency_fields.append(row[pos])
                 #     aggs[agg_name] += self._groupby_sum(*dependency_fields)
             else:
-                t = index_groups[self._hash_dict(group_id)]['ctable']
+                t = index_groups[group_hash_id]['ctable']
                 t.append([[x] for x in row])
 
                 # todo: adapt for hash_dict
