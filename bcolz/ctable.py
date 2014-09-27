@@ -1056,6 +1056,61 @@ class ctable(object):
 
         return self._iter(icols, dtype)
 
+
+
+
+    def _hash_dict(self, group_id):
+        return hash(frozenset(group_id.items()))
+
+    def groupby(self, cols, agg_fields):
+        import tempfile
+        from collections import defaultdict
+        from prettyprint import pp
+
+        assert isinstance(cols, list)
+        assert cols != []
+        assert isinstance(agg_fields, dict)
+        assert agg_fields != {}
+        index_groups = defaultdict(dict)
+
+        # # print 'cols', cols
+        # # print 'agg_fields', agg_fields
+        # tmp_fields = []
+        # tmp_fields += cols
+        # tmp_fields += agg_fields.keys()
+
+        # # Check input
+        for agg_field in agg_fields.keys():
+            assert agg_field not in cols
+        for col in cols:
+            assert col in self.names
+
+        prefix = 'bcolz_groupby_'
+        for row in self:
+            # print row
+            # get group id
+            group_id = {}
+            for col in cols:
+                # print 'col', col
+                pos = self.names.index(col)
+                group_id[col] = row[pos]
+            print 'group', group_id
+            if self._hash_dict(group_id) not in index_groups:
+                rootdir = tempfile.mkdtemp(prefix=prefix)
+                os.rmdir(rootdir)  # groupby needs this cleared
+                # todo: dynamic
+                t = bcolz.ctable(columns=([1,2,3,],[2,3,3]),
+                                 names=['a','b'],
+                                 rootdir=rootdir)
+                index_groups[self._hash_dict(group_id)] = \
+                    {
+                        'group_id': group_id,
+                        'ctable': t
+                    }
+                self.append(row)
+        # pp(index_groups)
+
+
     def __iter__(self):
         return self.iter(0, self.len, 1)
 
