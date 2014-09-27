@@ -1068,6 +1068,23 @@ class ctable(object):
             sum += item
         return sum
 
+    def _calc_aggs(self, aggs, agg_field_name, group_hash_id, row):
+        # agg_name = group_hash_id
+        func_and_paras = agg_field_name.values()[0]
+        function = func_and_paras.keys()[0]
+        in_fields = func_and_paras.values()[0]
+
+        if function == 'sum':
+            f = self._groupby_sum
+        else:
+            raise ValueError('Aggregation not available')
+
+        dependency_fields = []
+        for field in in_fields:
+            pos = self.names.index(field)
+            dependency_fields.append(row[pos])
+        aggs[group_hash_id] += f(*dependency_fields)
+
     def groupby(self, cols, agg_fields):
         import glob
         import tempfile
@@ -1080,6 +1097,7 @@ class ctable(object):
 
         index_groups = defaultdict(dict)
         aggs = defaultdict(float)
+        inv_index_group_hash_ids = {}
 
         # # Check input
         for agg_field in agg_fields:
@@ -1087,15 +1105,19 @@ class ctable(object):
         for col in cols:
             assert col in self.names
 
+
         prefix = 'bcolz_groupby_'
         for row in self:
             group_id = {}
-            group_hash_id = self._hash_dict(group_id)
 
             for col in cols:
                 pos = self.names.index(col)
                 group_id[col] = row[pos]
+
+            group_hash_id = self._hash_dict(group_id)
+
             if group_hash_id not in index_groups:
+                inv_index_group_hash_ids[group_hash_id] = group_id
                 rootdir = tempfile.mkdtemp(prefix=prefix)
                 os.rmdir(rootdir)  # groupby needs this cleared
                 t = bcolz.ctable(
@@ -1110,34 +1132,16 @@ class ctable(object):
                         'group_id': group_id,
                         'ctable': t
                     }
-                # todo: adapt for hash_dict
-                # for item in agg_fields:
-                #     agg_name = item.keys()[0]
-                #     func_and_paras = item.values()[0]
-                #     function = func_and_paras.keys()[0]
-                #     in_fields = func_and_paras.values()[0]
-                #
-                #     dependency_fields = []
-                #     for field in in_fields:
-                #         pos = self.names.index(field)
-                #         dependency_fields.append(row[pos])
-                #     aggs[agg_name] += self._groupby_sum(*dependency_fields)
+                # update calculated aggregations
+                for agg_field_name in agg_fields:
+                    self._calc_aggs(aggs, agg_field_name, group_hash_id, row)
             else:
                 t = index_groups[group_hash_id]['ctable']
                 t.append([[x] for x in row])
 
-                # todo: adapt for hash_dict
-                # for item in agg_fields:
-                #     agg_name = item.keys()[0]
-                #     func_and_paras = item.values()[0]
-                #     function = func_and_paras.keys()[0]
-                #     in_fields = func_and_paras.values()[0]
-                #
-                #     dependency_fields = []
-                #     for field in in_fields:
-                #         pos = self.names.index(field)
-                #         dependency_fields.append(row[pos])
-                #     aggs[agg_name] += self._groupby_sum(*dependency_fields)
+                # update calculated aggregations
+                for agg_field_name in agg_fields:
+                    self._calc_aggs(aggs, agg_field_name, group_hash_id, row)
 
                 # -- print grouped by --
                 # for key in index_groups:
@@ -1152,7 +1156,7 @@ class ctable(object):
                 shutil.rmtree(dir_)
 
         # Transform output to pandas
-        return aggs
+        return aggs, inv_index_group_hash_ids
 
 
     def __iter__(self):
