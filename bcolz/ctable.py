@@ -1089,19 +1089,6 @@ class ctable(object):
 
         prefix = 'bcolz_groupby_'
         for row in self:
-            print row
-            for item in agg_fields:
-                agg_name = item.keys()[0]
-                func_and_paras = item.values()[0]
-                function = func_and_paras.keys()[0]
-                in_fields = func_and_paras.values()[0]
-
-                dependency_fields = []
-                for field in in_fields:
-                    pos = self.names.index(field)
-                    dependency_fields.append(row[pos])
-                aggs[agg_name] += self._groupby_sum(*dependency_fields)
-
             group_id = {}
             for col in cols:
                 pos = self.names.index(col)
@@ -1121,9 +1108,34 @@ class ctable(object):
                         'group_id': group_id,
                         'ctable': t
                     }
+                # todo: adapt for hash_dict
+                # for item in agg_fields:
+                #     agg_name = item.keys()[0]
+                #     func_and_paras = item.values()[0]
+                #     function = func_and_paras.keys()[0]
+                #     in_fields = func_and_paras.values()[0]
+                #
+                #     dependency_fields = []
+                #     for field in in_fields:
+                #         pos = self.names.index(field)
+                #         dependency_fields.append(row[pos])
+                #     aggs[agg_name] += self._groupby_sum(*dependency_fields)
             else:
                 t = index_groups[self._hash_dict(group_id)]['ctable']
                 t.append([[x] for x in row])
+
+                # todo: adapt for hash_dict
+                # for item in agg_fields:
+                #     agg_name = item.keys()[0]
+                #     func_and_paras = item.values()[0]
+                #     function = func_and_paras.keys()[0]
+                #     in_fields = func_and_paras.values()[0]
+                #
+                #     dependency_fields = []
+                #     for field in in_fields:
+                #         pos = self.names.index(field)
+                #         dependency_fields.append(row[pos])
+                #     aggs[agg_name] += self._groupby_sum(*dependency_fields)
 
                 # -- print grouped by --
                 # for key in index_groups:
