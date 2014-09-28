@@ -1108,16 +1108,21 @@ class ctable(object):
         output_table = bcolz.ctable(columns=new_matrix, names=outcols)
 
         # and write away the new values by using the index array
+        previous_index = -1
+        groupby_len = len(groupby_cols)
         i = 0
         for row in self.iter(outcols=outcols):
             current_index = index_arr[i]
             # save groupby cols
             # (a bit unefficient because it does not have to do that each time normally, but only the first time)
-            col_nr = 0
-            for col in groupby_cols:
-                current_col = output_table.cols[col]
-                current_col[current_index] = row[col_nr]
-                col_nr += 1
+            if current_index != previous_index:
+                col_nr = 0
+                for col in groupby_cols:
+                    current_col = output_table.cols[col]
+                    current_col[current_index] = row[col_nr]
+                    col_nr += 1
+            else:
+                col_nr = groupby_len
             # do sum operation (only sum atm; have to add mean, median, min, max, etc. in future)
             for col in measure_cols:
                 current_col = output_table.cols[col]
@@ -1125,6 +1130,7 @@ class ctable(object):
                 col_nr += 1
             # get ready for the next row of the loop
             i += 1
+            previous_index = current_index
 
         return output_table
 
