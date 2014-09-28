@@ -80,12 +80,5 @@ fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
 # %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'])
 # %timeit df[df['state'].isin(['IL', 'CA'])].groupby(['state'])['cost', 'cost2'].sum()
 # %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'], where_terms=[('state', 'in', ['IL', 'CA'])])
-
-
-import numpy as np
-col = fact_bcolz['state']
-boolarr = np.ones(len(col), dtype=bool)
-value_set = set(['IL', 'CA'])
-reverse = False
-# %timeit bcolz.carray_ext.carray_is_in(col, value_set, np.ones(len(col), dtype=bool), reverse)
-# %timeit bcolz.carray_ext.carray_is_in2(col, value_set, np.ones(len(col), dtype=bool), reverse)
+# %timeit df[-df['state'].isin(['IL', 'CA'])].groupby(['state'])['cost', 'cost2'].sum()
+# %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'], where_terms=[('state', 'not in', ['IL', 'CA'])])
