@@ -2617,6 +2617,45 @@ cdef class carray:
         fullrepr = header + str(self)
         return fullrepr
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef carray_is_in(carray col, set value_set, carray boolarr, bint reverse):
+    """
+    Update a boolean array with checks whether the values of a column (col) are in a set (value_set)
+    Reverse means "not in" functionality
+
+    For the 0d array work around, see https://github.com/Blosc/bcolz/issues/61
+
+    :param col:
+    :param value_set:
+    :param boolarr:
+    :param reverse:
+    :return:
+    """
+    cdef Py_ssize_t i, col_len
+    col_len = len(col)
+
+    if not reverse:
+        for i in range(col_len):
+            if boolarr[i] is True:
+                val = col[i]
+                # numpy 0d array work around
+                if type(val) == np.ndarray:
+                    val = val[()]
+                if val not in value_set:
+                    boolarr[i] = False
+    else:
+        for i in range(col_len):
+            if boolarr[i] is True:
+                val = col[i]
+                # numpy 0d array work around
+                if type(val) == np.ndarray:
+                    val = val[()]
+                if val in value_set:
+                    boolarr[i] = False
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef inline object _dict_update(dict d, tuple key, tuple input_val):
@@ -2634,6 +2673,7 @@ cdef inline object _dict_update(dict d, tuple key, tuple input_val):
             Py_INCREF(row_val)
             PyTuple_SET_ITEM(new_val, i, row_val)
         PyDict_SetItem(d, key, new_val)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

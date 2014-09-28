@@ -62,9 +62,8 @@ projects = [
 ]
 
 df_tmp = pd.DataFrame(projects)
-df = [df_tmp for i in range(10000)]
+df = [df_tmp for i in range(100000)]
 df = pd.concat(df, ignore_index=True)
-
 print df
 
 prefix = 'bcolz-TestH5'
@@ -76,3 +75,5 @@ print '--'
 print fact_bcolz.groupby(['state','name'], ['cost', 'cost2'])
 print '--'
 # fact_bcolz.groupby(['state'],{'sum_costs':['sum', 'cost', 'cost2']})
+
+%timeit groupby_cython2(fact_bcolz, ['state'], ['cost', 'cost2'])

@@ -18,7 +18,7 @@ import os
 import os.path
 import shutil
 from .py2help import _inttypes, imap, xrange
-from bcolz.carray_ext import groupby_cython
+from bcolz.carray_ext import groupby_cython, carray_is_in
 
 _inttypes += (np.integer,)
 islice = itertools.islice
