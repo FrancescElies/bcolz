@@ -1056,114 +1056,71 @@ class ctable(object):
 
         return self._iter(icols, dtype)
 
+    def groupby_carst(self, groupby_cols, measure_cols):
+        """
+        Groups the measure_cols over the groupby_cols. Currently only sums are supported.
+        NB: current Python standard hash *might* have collisions!
 
+        :param groupby_cols: A list of groupby columns
+        :param measure_cols: A list of measure columns (sum only atm)
+        :return:
+        """
 
+        arr_len = self.size
+        # Make a new integer carry index_arr with the length of the ctable with nones
+        # -> this will have a per-row index where the new value will go
+        index_arr = bcolz.carray(np.zeros(arr_len, dtype=int))
+        # Make a new type x carry hash_arr with the length of the ctable with nones
+        # -> this will have a hash code of the group by columns;
+        hash_arr = bcolz.carray(np.zeros(arr_len, dtype=int))
+        # Make an integer variable hash_max that starts at 0
+        hash_max = 0
+        previous_hash = 0
+        current_index = 0
 
-    def _hash_dict(self, group_id):
-        if isinstance(group_id.values()[0], dict):
-            return hash(frozenset(group_id.keys()[0])) + \
-                   hash(frozenset(group_id.values()[0]))
-        else:
-            return hash(frozenset(group_id.items()))
+        # first create an overview of which row goes where (fill the index array)
+        i = 0
+        for row in self.iter(outcols=groupby_cols):
+            current_hash = hash(row)
+            # if the current_hash is unlike the previous hash, lookup the new index value
+            if current_hash != previous_hash:
+                # check if it already exists as a known value
+                hash_found = False
+                for j in range(hash_max):
+                    if current_hash == hash_arr[j]:
+                        current_index = j
+                        hash_found = True
+                        break
+                # if it does not exist yet, add it to the hash_arr
+                if not hash_found:
+                    current_index = hash_max
+                    hash_arr[hash_max] = current_hash
+                    hash_max += 1
+            # save where the current row has to go
+            index_arr[i] = current_index
+            # get ready for the next row of the loop
+            previous_hash = current_hash
+            i += 1
 
-    def _groupby_sum(self, *args):
-        sum = 0.0
-        for item in args:
-            sum += item
-        return sum
+        # now create the output data frame
+        outcols = groupby_cols + measure_cols
+        new_matrix = [np.zeros(hash_max, self.dtype[col]) for col in outcols]
+        output_table = bcolz.ctable(columns=new_matrix, names=outcols)
 
-    def _calc_aggs(self, aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row):
-        # agg_name = group_hash_id
-        func_and_paras = agg_field_name.values()[0]
-        function = func_and_paras.keys()[0]
-        in_fields = func_and_paras.values()[0]
-        agg_hash_id = self._hash_dict(agg_field_name) + group_hash_id
-        inv_aggs_hash_ids[agg_hash_id] = agg_field_name, group_id
-        if function == 'sum':
-            f = self._groupby_sum
-        else:
-            raise ValueError(
-                u'Aggregation {0:s} not available'.format(function)
-            )
+        # and write away the new values by using the index array
+        i = 0
+        for row in self.iter(outcols=outcols):
+            current_index = index_arr[i]
+            # save groupby cols <- a bit unefficient because it does not have to do that each time normally
+            for j, col in enumerate(groupby_cols):
+                output_table[col][current_index] = row.__getattribute__(col)
+            # do sum operation (only sum atm; have to add mean, median, min, max, etc. in future)
+            for col in measure_cols:
+                output_table[col][current_index] += row.__getattribute__(col)
+            # get ready for the next row of the loop
+            i += 1
 
-        dependency_fields = []
-        for field in in_fields:
-            pos = self.names.index(field)
-            dependency_fields.append(row[pos])
-        aggs[agg_hash_id] += f(*dependency_fields)
-
-    def groupby(self, cols, agg_fields):
-        import glob
-        import tempfile
-        from collections import defaultdict
-
-        assert isinstance(cols, list)
-        assert cols != []
-        assert isinstance(agg_fields, list)
-        assert agg_fields != {}
-
-        index_groups = defaultdict(dict)
-        aggs = defaultdict(float)
-        inv_aggs_hash_ids = {}
-
-        # # Check input
-        for agg_field in agg_fields:
-            assert agg_field not in cols
-        for col in cols:
-            assert col in self.names
-
-
-        prefix = 'bcolz_groupby_'
-        for row in self:
-            group_id = {}
-
-            for col in cols:
-                pos = self.names.index(col)
-                group_id[col] = row[pos]
-
-            group_hash_id = self._hash_dict(group_id)
-
-            if group_hash_id not in index_groups:
-                rootdir = tempfile.mkdtemp(prefix=prefix)
-                os.rmdir(rootdir)  # groupby needs this cleared
-                t = bcolz.ctable(
-                    columns=[[x] for x in row],
-                    names=self.cols.names,
-                    rootdir=rootdir
-                )
-
-                # index the the new created ctable for future use
-                index_groups[group_hash_id] = \
-                    {
-                        'group_id': group_id,
-                        'ctable': t
-                    }
-                # update calculated aggregations
-                for agg_field_name in agg_fields:
-                    self._calc_aggs(aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row)
-            else:
-                t = index_groups[group_hash_id]['ctable']
-                t.append([[x] for x in row])
-
-                # update calculated aggregations
-                for agg_field_name in agg_fields:
-                    self._calc_aggs(aggs, agg_field_name, group_id, group_hash_id, inv_aggs_hash_ids, row)
-
-                # -- print grouped by --
-                # for key in index_groups:
-                #     for row in index_groups[key]['ctable']:
-                #         print row
-                #     pp(index_groups[key]['group_id'])
-
-        # remove temporary folders
-        for idexed_group in index_groups.values():
-            t = idexed_group['ctable']
-            for dir_ in glob.glob(t.rootdir+'*'):
-                shutil.rmtree(dir_)
-
-        # Transform output to pandas
-        return aggs, inv_aggs_hash_ids
-
+        return output_table
 
     def __iter__(self):
         return self.iter(0, self.len, 1)
