@@ -87,5 +87,5 @@ col = fact_bcolz['state']
 boolarr = np.ones(len(col), dtype=bool)
 value_set = set(['IL', 'CA'])
 reverse = False
-%timeit bcolz.carray_ext.carray_is_in(col, value_set, np.ones(len(col), dtype=bool), reverse)
-%timeit bcolz.carray_ext.carray_is_in2(col, value_set, np.ones(len(col), dtype=bool), reverse)
+# %timeit bcolz.carray_ext.carray_is_in(col, value_set, np.ones(len(col), dtype=bool), reverse)
+# %timeit bcolz.carray_ext.carray_is_in2(col, value_set, np.ones(len(col), dtype=bool), reverse)
