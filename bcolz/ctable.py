@@ -1094,7 +1094,7 @@ class ctable(object):
                 # if it does not exist yet, add it to the hash_arr
                 if not hash_found:
                     current_index = hash_max
-                    hash_arr[hash_max] = current_hash
+                    hash_arr[current_index] = current_hash
                     hash_max += 1
             # save where the current row has to go
             index_arr[i] = current_index
@@ -1109,13 +1109,16 @@ class ctable(object):
 
         # and write away the new values by using the index array
         i = 0
+        groupby_cols_set = set(groupby_cols)
+        measure_cols_set = set(measure_cols)
         for row in self.iter(outcols=outcols):
             current_index = index_arr[i]
-            # save groupby cols <- a bit unefficient because it does not have to do that each time normally
-            for j, col in enumerate(groupby_cols):
+            # save groupby cols
+            # (a bit unefficient because it does not have to do that each time normally, but only the first time)
+            for col in groupby_cols_set:
                 output_table[col][current_index] = row.__getattribute__(col)
             # do sum operation (only sum atm; have to add mean, median, min, max, etc. in future)
-            for col in measure_cols:
+            for col in measure_cols_set:
                 output_table[col][current_index] += row.__getattribute__(col)
             # get ready for the next row of the loop
             i += 1
