@@ -1077,13 +1077,16 @@ class ctable(object):
         """
 
         outcols = groupby_cols + measure_cols
+        col_dtype_set = {col: self.dtype[col] for col in outcols}
+
         if where is not None:
             iter_gen = self.where(where, outcols=outcols)
         elif where_terms is not None:
             iter_gen = self.where_terms(where_terms, outcols=outcols)
         else:
             iter_gen = self.iter(outcols=outcols)
-        return groupby_cython(iter_gen, groupby_cols, measure_cols)
+
+        return groupby_cython(iter_gen, groupby_cols, measure_cols, col_dtype_set)
 
     def __iter__(self):
         return self.iter(0, self.len, 1)

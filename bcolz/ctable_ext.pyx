@@ -108,7 +108,7 @@ cpdef groupby_cython(ctable_iter, list groupby_cols, list measure_cols):
     actual_len = len(total_dict)
     total_matrix = []
     for col in outcols:
-        output_arr = np.zeros(actual_len, input_ctable.dtype[col])
+        output_arr = np.zeros(actual_len, col_dtype_set[col])
         total_matrix.append(output_arr)
     # now fill the output table
     i = 0

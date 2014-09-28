@@ -2677,7 +2677,7 @@ cdef inline object _dict_update(dict d, tuple key, tuple input_val):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef groupby_cython(ctable_iter, list groupby_cols, list measure_cols):
+cpdef groupby_cython(ctable_iter, list groupby_cols, list measure_cols, dict col_dtype_set):
     """
     Groups the measure_cols over the groupby_cols. Currently only sums are supported.
 
@@ -2711,7 +2711,7 @@ cpdef groupby_cython(ctable_iter, list groupby_cols, list measure_cols):
     actual_len = len(total_dict)
     total_matrix = []
     for col in outcols:
-        output_arr = np.zeros(actual_len, input_ctable.dtype[col])
+        output_arr = np.zeros(actual_len, col_dtype_set[col])
         total_matrix.append(output_arr)
     # now fill the output table
     i = 0
