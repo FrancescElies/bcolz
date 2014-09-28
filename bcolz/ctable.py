@@ -1067,10 +1067,10 @@ class ctable(object):
         """
 
         arr_len = self.size
-        # Make a new integer carry index_arr with the length of the ctable with nones
+        # Make a new integer carry index_arr with the length of the ctable
         # -> this will have a per-row index where the new value will go
         index_arr = bcolz.carray(np.zeros(arr_len, dtype=int))
-        # Make a new type x carry hash_arr with the length of the ctable with nones
+        # Make a new type x carry hash_arr with the length of the ctable
         # -> this will have a hash code of the group by columns;
         hash_arr = bcolz.carray(np.zeros(arr_len, dtype=int))
         # Make an integer variable hash_max that starts at 0
@@ -1109,17 +1109,20 @@ class ctable(object):
 
         # and write away the new values by using the index array
         i = 0
-        groupby_cols_set = set(groupby_cols)
-        measure_cols_set = set(measure_cols)
         for row in self.iter(outcols=outcols):
             current_index = index_arr[i]
             # save groupby cols
             # (a bit unefficient because it does not have to do that each time normally, but only the first time)
-            for col in groupby_cols_set:
-                output_table[col][current_index] = row.__getattribute__(col)
+            col_nr = 0
+            for col in groupby_cols:
+                current_col = output_table.cols[col]
+                current_col[current_index] = row[col_nr]
+                col_nr += 1
             # do sum operation (only sum atm; have to add mean, median, min, max, etc. in future)
-            for col in measure_cols_set:
-                output_table[col][current_index] += row.__getattribute__(col)
+            for col in measure_cols:
+                current_col = output_table.cols[col]
+                current_col[current_index] += row[col_nr]
+                col_nr += 1
             # get ready for the next row of the loop
             i += 1
 
