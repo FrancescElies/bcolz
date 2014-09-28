@@ -2637,35 +2637,6 @@ cpdef carray_is_in(carray col, set value_set, np.ndarray boolarr, bint reverse):
     i = 0
     if not reverse:
         for val in col.iter():
-            if boolarr[i] == True:
-                boolarr[i] = val in value_set
-            i += 1
-    else:
-        for val in col.iter():
-            if boolarr[i] == True:
-                boolarr[i] = val not in value_set
-            i += 1
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef carray_is_in2(carray col, set value_set, np.ndarray boolarr, bint reverse):
-    """
-    Update a boolean array with checks whether the values of a column (col) are in a set (value_set)
-    Reverse means "not in" functionality
-
-    For the 0d array work around, see https://github.com/Blosc/bcolz/issues/61
-
-    :param col:
-    :param value_set:
-    :param boolarr:
-    :param reverse:
-    :return:
-    """
-    cdef Py_ssize_t i
-    i = 0
-    if not reverse:
-        for val in col.iter():
             if val not in value_set:
                 boolarr[i] = False
             i += 1

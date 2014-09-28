@@ -29,27 +29,18 @@ cpdef carray_is_in(carray col, set value_set, np.ndarray boolarr, bint reverse):
     :param reverse:
     :return:
     """
-    cdef Py_ssize_t i, col_len
-    col_len = len(col)
+    cdef Py_ssize_t i
+    i = 0
     if not reverse:
-        for i in range(col_len):
-            if boolarr[i] == True:
-                val = col[i]
-                # numpy 0d array work around
-                if type(val) == np.ndarray:
-                    val = val[()]
-                if val not in value_set:
-                    boolarr[i] = False
+        for val in col.iter():
+            if val not in value_set:
+                boolarr[i] = False
+            i += 1
     else:
-        for i in range(col_len):
-            if boolarr[i] == True:
-                val = col[i]
-                # numpy 0d array work around
-                if type(val) == np.ndarray:
-                    val = val[()]
-                if val in value_set:
-                    boolarr[i] = False
-
+        for val in col.iter():
+            if val in value_set:
+                boolarr[i] = False
+            i += 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
