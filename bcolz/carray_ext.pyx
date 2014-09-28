@@ -2677,7 +2677,7 @@ cdef inline object _dict_update(dict d, tuple key, tuple input_val):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef groupby_cython(input_ctable, list groupby_cols, list measure_cols):
+cpdef groupby_cython(ctable_iter, list groupby_cols, list measure_cols):
     """
     Groups the measure_cols over the groupby_cols. Currently only sums are supported.
     NB: current Python standard hash *might* have collisions!
@@ -2686,18 +2686,16 @@ cpdef groupby_cython(input_ctable, list groupby_cols, list measure_cols):
     :param measure_cols: A list of measure columns (sum only atm)
     :return:
     """
-    cdef int arr_len, actual_len, i, j, col_nr, hash_max, \
+    cdef int actual_len, i, j, col_nr, hash_max, \
         current_index, previous_index, \
         groupby_cols_len, measure_cols_len
     cdef str col
-    # cdef tuple row <- namedtuple issue?
     cdef list outcols, total_matrix
     cdef object row
     cdef bint hash_found
     cdef np.ndarray hash_arr, output_arr
     cdef tuple groupby_tup, measure_tup
     cdef dict total_dict
-    arr_len = input_ctable.size
     total_dict = {}
     hash_max = 0
     current_index = 0
@@ -2705,7 +2703,7 @@ cpdef groupby_cython(input_ctable, list groupby_cols, list measure_cols):
     groupby_cols_len = len(groupby_cols)
     measure_cols_len = len(measure_cols)
     # process the rows
-    for row in input_ctable.iter(outcols=outcols):
+    for row in ctable_iter:
         # lookup values and create hash
         groupby_tup = row[0:groupby_cols_len]
         measure_tup = row[groupby_cols_len:]
