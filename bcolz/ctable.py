@@ -925,6 +925,8 @@ class ctable(object):
         where_terms(term_list, outcols=None, limit=None, skip=0)
 
         Iterate over rows where `term_list` is true.
+        A terms list has a [(col, operator, value), ..] construction.
+        Eg. [('sales', '>', 2), ('state', 'in', ['IL', 'AR'])]
 
         :param term_list:
         :param outcols:
