@@ -73,8 +73,7 @@ print(rootdir)
 fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
 
 # TESTS:
-
-# %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'])
 # %timeit fact_bcolz.where_terms([('state', 'in', ['IL', 'CA'])])
-# fact_bcolz.where_terms([('state', 'in', ['IL', 'CA'])])
-# fact_bcolz.where_terms([('cost', 'in', [1, 2, 3])])
+# %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'])
+# %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'], where_terms=[('state', 'in', ['IL', 'CA'])])
+
