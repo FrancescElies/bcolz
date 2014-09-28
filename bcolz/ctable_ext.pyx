@@ -31,10 +31,9 @@ cpdef carray_is_in(carray col, set value_set, np.ndarray boolarr, bint reverse):
     """
     cdef Py_ssize_t i, col_len
     col_len = len(col)
-    i = 0
     if not reverse:
         for i in range(col_len):
-            if boolarr[i] is True:
+            if boolarr[i] == True:
                 val = col[i]
                 # numpy 0d array work around
                 if type(val) == np.ndarray:
@@ -43,7 +42,7 @@ cpdef carray_is_in(carray col, set value_set, np.ndarray boolarr, bint reverse):
                     boolarr[i] = False
     else:
         for i in range(col_len):
-            if boolarr[i] is True:
+            if boolarr[i] == True:
                 val = col[i]
                 # numpy 0d array work around
                 if type(val) == np.ndarray:
