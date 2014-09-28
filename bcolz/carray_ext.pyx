@@ -2635,6 +2635,7 @@ cpdef carray_is_in(carray col, set value_set, carray boolarr, bint reverse):
     """
     cdef Py_ssize_t i, col_len
     col_len = len(col)
+    i = 0
 
     if not reverse:
         for i in range(col_len):

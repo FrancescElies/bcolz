@@ -980,7 +980,7 @@ class ctable(object):
                     filter_value = filter_value[0]
 
                     if type(filter_value) == str:
-                        filter_value = '"' + filter_value + "'"
+                        filter_value = '"' + filter_value + '"'
                     else:
                         filter_value = str(filter_value)
 
