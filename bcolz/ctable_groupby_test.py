@@ -28,11 +28,12 @@ projects = [
     {'name': 'help farmers', 'state': 'AR', 'cost': 128, 'cost2': 129, 'cost3': 130}
 ]
 
-df = pd.DataFrame(columns=projects[0].keys())
-for i, item in enumerate(projects):
-    df.loc[i] = item.values()
+df_tmp = pd.DataFrame(projects)
+df = [df_tmp for i in range(10000)]
+df = pd.concat(df, ignore_index=True)
 
 print df
+
 prefix = 'bcolz-TestH5'
 rootdir = tempfile.mkdtemp(prefix=prefix)
 os.rmdir(rootdir)  # tests needs this cleared
