@@ -76,4 +76,4 @@ print fact_bcolz.groupby(['state','name'], ['cost', 'cost2'])
 print '--'
 # fact_bcolz.groupby(['state'],{'sum_costs':['sum', 'cost', 'cost2']})
 
-%timeit groupby_cython2(fact_bcolz, ['state'], ['cost', 'cost2'])
+# %timeit groupby_cython2(fact_bcolz, ['state'], ['cost', 'cost2'])
