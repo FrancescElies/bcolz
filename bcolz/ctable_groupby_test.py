@@ -49,6 +49,7 @@ import bcolz
 import tempfile
 import os
 import pandas as pd
+import numpy as np
 
 projects = [
     {'name': 'build roads',  'state': 'CA', 'cost':   1, 'cost2':  2, 'cost3':    3},
@@ -62,7 +63,7 @@ projects = [
 ]
 
 df_tmp = pd.DataFrame(projects)
-df = [df_tmp for i in range(1000)]
+df = [df_tmp for i in range(100000)]
 df = pd.concat(df, ignore_index=True)
 print df
 
@@ -87,3 +88,4 @@ boolarr = np.ones(len(col), dtype=bool)
 value_set = set(['IL', 'CA'])
 reverse = False
 %timeit bcolz.carray_ext.carray_is_in(col, value_set, np.ones(len(col), dtype=bool), reverse)
+%timeit bcolz.carray_ext.carray_is_in2(col, value_set, np.ones(len(col), dtype=bool), reverse)

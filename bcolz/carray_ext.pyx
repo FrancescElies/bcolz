@@ -2675,22 +2675,12 @@ cpdef carray_is_in2(carray col, set value_set, np.ndarray boolarr, bint reverse)
     if not reverse:
         for val in col.iter():
             if boolarr[i] == True:
-                # numpy 0d array work around
-                try:
-                    val = val[()]
-                except TypeError:
-                    pass
                 if val not in value_set:
                     boolarr[i] = False
             i += 1
     else:
         for val in col.iter():
             if boolarr[i] == True:
-                # numpy 0d array work around
-                try:
-                    val = val[()]
-                except TypeError:
-                    pass
                 if val in value_set:
                     boolarr[i] = False
             i += 1
