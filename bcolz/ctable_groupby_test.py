@@ -62,7 +62,7 @@ projects = [
 ]
 
 df_tmp = pd.DataFrame(projects)
-df = [df_tmp for i in range(100000)]
+df = [df_tmp for i in range(1000)]
 df = pd.concat(df, ignore_index=True)
 print df
 
@@ -78,4 +78,4 @@ fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
 # fact_bcolz.where_terms([('state', 'in', ['IL', 'CA'])])
 # fact_bcolz.where_terms([('state', 'in', ['IL', 'CA'])])
 # fact_bcolz.where_terms([('cost', 'in', [1, 2, 3])])
-
+where_terms(fact_bcolz, [('state', 'in', ['IL', 'CA'])])
