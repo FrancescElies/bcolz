@@ -2680,7 +2680,6 @@ cdef inline object _dict_update(dict d, tuple key, tuple input_val):
 cpdef groupby_cython(ctable_iter, list groupby_cols, list measure_cols):
     """
     Groups the measure_cols over the groupby_cols. Currently only sums are supported.
-    NB: current Python standard hash *might* have collisions!
 
     :param groupby_cols: A list of groupby columns
     :param measure_cols: A list of measure columns (sum only atm)

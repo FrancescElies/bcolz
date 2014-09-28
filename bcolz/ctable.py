@@ -1065,6 +1065,17 @@ class ctable(object):
         return self._iter(icols, dtype)
 
     def groupby(self, groupby_cols, measure_cols, where=None, where_terms=None):
+        """
+        Groups the measure_cols over the groupby_cols. Currently only sums are supported.
+        Also supports where and where_terms filtering
+
+        :param groupby_cols: A list of groupby columns
+        :param measure_cols: A list of measure columns (sum only atm)
+        :param where: A where filter, if it should be applied pre-grouping; default: None
+        :param where_terms: A where_terms filter, if it should be applied pre-grouping; default: None
+        :return:
+        """
+
         outcols = groupby_cols + measure_cols
         if where is not None:
             iter_gen = self.where(where, outcols=outcols)
