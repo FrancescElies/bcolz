@@ -73,6 +73,6 @@ os.rmdir(rootdir)  # tests needs this cleared
 print(rootdir)
 fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
 print '--'
-fact_bcolz.groupby(['state','name'], {'sum_costs':['sum', 'cost', 'cost2']})
+print fact_bcolz.groupby(['state','name'], ['cost', 'cost2'])
 print '--'
 # fact_bcolz.groupby(['state'],{'sum_costs':['sum', 'cost', 'cost2']})
