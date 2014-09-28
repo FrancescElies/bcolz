@@ -51,14 +51,14 @@ import os
 import pandas as pd
 
 projects = [
-    {'name': 'build roads',  'state': 'CA', 'cost': 1000000, 'cost2': 1000000},
-    {'name': 'fight crime',  'state': 'IL', 'cost': 100000,  'cost2': 100000},
-    {'name': 'help farmers', 'state': 'IL', 'cost': 2000000, 'cost2': 2000000},
-    {'name': 'help farmers', 'state': 'CA', 'cost': 200000,  'cost2': 200000},
-    {'name': 'build roads',  'state': 'CA', 'cost': 9000000, 'cost2': 199900},
-    {'name': 'fight crime',  'state': 'IL', 'cost': 900000,  'cost2': 19990},
-    {'name': 'help farmers', 'state': 'IL', 'cost': 9000000, 'cost2': 299900},
-    {'name': 'help farmers', 'state': 'AR', 'cost': 900000,  'cost2': 29990}
+    {'name': 'build roads',  'state': 'CA', 'cost':   1, 'cost2':  2, 'cost3':    3},
+    {'name': 'fight crime',  'state': 'IL', 'cost':   2, 'cost2':  3, 'cost3':    4},
+    {'name': 'help farmers', 'state': 'IL', 'cost':   4, 'cost2':  5, 'cost3':    6},
+    {'name': 'help farmers', 'state': 'CA', 'cost':   8, 'cost2':  9, 'cost3':   10},
+    {'name': 'build roads',  'state': 'CA', 'cost':  16, 'cost2': 17, 'cost3':   18},
+    {'name': 'fight crime',  'state': 'IL', 'cost':  32, 'cost2': 33, 'cost3':   34},
+    {'name': 'help farmers', 'state': 'IL', 'cost':  64, 'cost2': 65, 'cost3':   66},
+    {'name': 'help farmers', 'state': 'AR', 'cost': 128, 'cost2': 129, 'cost3': 130}
 ]
 
 df_tmp = pd.DataFrame(projects)
@@ -71,12 +71,11 @@ rootdir = tempfile.mkdtemp(prefix=prefix)
 os.rmdir(rootdir)  # tests needs this cleared
 print(rootdir)
 fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
-print '--'
-print fact_bcolz.groupby(['state','name'], ['cost', 'cost2'])
-print '--'
-# fact_bcolz.groupby(['state'],{'sum_costs':['sum', 'cost', 'cost2']})
+
+# TESTS:
 
 # %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'])
 # fact_bcolz.where_terms([('state', 'in', ['IL', 'CA'])])
-fact_bcolz.where_terms([('state', 'in', ['IL'])])
+# fact_bcolz.where_terms([('state', 'in', ['IL', 'CA'])])
+# fact_bcolz.where_terms([('cost', 'in', [1, 2, 3])])
 
