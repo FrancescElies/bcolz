@@ -62,7 +62,7 @@ projects = [
 ]
 
 df_tmp = pd.DataFrame(projects)
-df = [df_tmp for i in range(100000)]
+df = [df_tmp for i in range(1000)]
 df = pd.concat(df, ignore_index=True)
 print df
 
@@ -73,13 +73,17 @@ print(rootdir)
 fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
 
 # TESTS:
+# %timeit df['state'].isin(['IL', 'CA'])
 # %timeit fact_bcolz.where_terms([('state', 'in', ['IL', 'CA'])])
+# %timeit df.groupby(['state'])['cost', 'cost2'].sum()
 # %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'])
+# %timeit df[df['state'].isin(['IL', 'CA'])].groupby(['state'])['cost', 'cost2'].sum()
 # %timeit fact_bcolz.groupby(['state'], ['cost', 'cost2'], where_terms=[('state', 'in', ['IL', 'CA'])])
+
 
 import numpy as np
 col = fact_bcolz['state']
 boolarr = np.ones(len(col), dtype=bool)
 value_set = set(['IL', 'CA'])
 reverse = False
-bcolz.carray_ext.carray_is_in(col, value_set, boolarr, reverse)
+%timeit bcolz.carray_ext.carray_is_in(col, value_set, np.ones(len(col), dtype=bool), reverse)
