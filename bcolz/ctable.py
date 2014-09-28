@@ -1003,9 +1003,11 @@ class ctable(object):
         # return eval_string, eval_list
         if eval_string:
             boolarr = self.eval(eval_string)
+            if eval_list:
+                # convert to numpy array for array_is_in
+                boolarr = boolarr[:]
         else:
-            a = np.ones(self.size, dtype=bool)
-            boolarr = bcolz.carray(a)
+            boolarr = np.ones(self.size, dtype=bool)
 
         # (2) Evaluate other terms like 'in' or 'not in' ...
         for term in eval_list:
@@ -1026,6 +1028,10 @@ class ctable(object):
             value_set = set(term[2])
 
             carray_is_in(col, value_set, boolarr, reverse)
+
+        if eval_list:
+            # convert boolarr back to carray
+            boolarr = carray(boolarr)
 
         if outcols is None:
             outcols = self.names
