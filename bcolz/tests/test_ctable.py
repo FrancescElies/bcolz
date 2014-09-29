@@ -1859,6 +1859,7 @@ class where_terms_veryLargeDiskTest(where_termsTest, TestCase):
     N = 10 * 10000
     disk = True
 
+
 class groupbyTest(MayBeDiskTest):
     """
     result = [r.user_id for r in nzlens.where(
@@ -1982,7 +1983,8 @@ class groupbyTest(MayBeDiskTest):
             ( 'NL', 'b4', (  8 * N / 10 ) ),
             ( 'NL', 'b5', ( 16 * N / 10 ) ),
         )
-        for row, expected_result in itertools.izip(sorted(result), sorted(expected_results)):
+        for row, expected_result in itertools.izip(sorted(result),
+                                                   sorted(expected_results)):
             self.assertTrue(row.f0 == expected_result[0],
                             "groupby not working correctly")
             self.assertTrue(row.f1 == expected_result[1],
@@ -2033,7 +2035,8 @@ class groupbyTest(MayBeDiskTest):
             ( 'NL', 'b4', (  -8 * N / 10 ) ),
             ( 'NL', 'b5', ( -16 * N / 10 ) ),
         )
-        for row, expected_result in itertools.izip(sorted(result), sorted(expected_results)):
+        for row, expected_result in itertools.izip(sorted(result),
+                                                   sorted(expected_results)):
             self.assertTrue(row.f0 == expected_result[0],
                             "groupby not working correctly")
             self.assertTrue(row.f1 == expected_result[1],
@@ -2084,7 +2087,8 @@ class groupbyTest(MayBeDiskTest):
             ( 'NL', 'b4', (  8 * N / 10 ), (  -8 * N / 10 ) ),
             ( 'NL', 'b5', ( 16 * N / 10 ), ( -16 * N / 10 ) ),
         )
-        for row, expected_result in itertools.izip(sorted(result), sorted(expected_results)):
+        for row, expected_result in itertools.izip(sorted(result),
+                                                   sorted(expected_results)):
             self.assertTrue(row.f0 == expected_result[0],
                             "groupby not working correctly")
             self.assertTrue(row.f1 == expected_result[1],
@@ -2093,6 +2097,7 @@ class groupbyTest(MayBeDiskTest):
                             "groupby not working correctly")
             self.assertTrue(row.f3 == expected_result[3],
                             "groupby not working correctly")
+
 
 class groupby_smallTest(groupbyTest, TestCase):
     N = 10
