@@ -1972,17 +1972,17 @@ class groupbyTest(MayBeDiskTest):
         # print result
         expected_results = (
             ( 'ES', 'b1', (  1 * N / 10 ) ),
-            ( 'NL', 'b5', ( 16 * N / 10 ) ),
+            ( 'ES', 'b2', (  2 * N / 10 ) ),
             ( 'ES', 'b3', (  4 * N / 10 ) ),
+            ( 'ES', 'b4', (  8 * N / 10 ) ),
+            ( 'ES', 'b5', ( 16 * N / 10 ) ),
+            ( 'NL', 'b1', (  1 * N / 10 ) ),
+            ( 'NL', 'b2', (  2 * N / 10 ) ),
             ( 'NL', 'b3', (  4 * N / 10 ) ),
             ( 'NL', 'b4', (  8 * N / 10 ) ),
-            ( 'ES', 'b5', ( 16 * N / 10 ) ),
-            ( 'NL', 'b2', (  2 * N / 10 ) ),
-            ( 'NL', 'b1', (  1 * N / 10 ) ),
-            ( 'ES', 'b2', (  2 * N / 10 ) ),
-            ( 'ES', 'b4', (  8 * N / 10 ) ),
+            ( 'NL', 'b5', ( 16 * N / 10 ) ),
         )
-        for row, expected_result in itertools.izip(result, expected_results):
+        for row, expected_result in itertools.izip(sorted(result), sorted(expected_results)):
             self.assertTrue(row.f0 == expected_result[0],
                             "groupby not working correctly")
             self.assertTrue(row.f1 == expected_result[1],
@@ -2023,17 +2023,17 @@ class groupbyTest(MayBeDiskTest):
         # print result
         expected_results = (
             ( 'ES', 'b1', (  -1 * N / 10 ) ),
-            ( 'NL', 'b5', ( -16 * N / 10 ) ),
+            ( 'ES', 'b2', (  -2 * N / 10 ) ),
             ( 'ES', 'b3', (  -4 * N / 10 ) ),
+            ( 'ES', 'b4', (  -8 * N / 10 ) ),
+            ( 'ES', 'b5', ( -16 * N / 10 ) ),
+            ( 'NL', 'b1', (  -1 * N / 10 ) ),
+            ( 'NL', 'b2', (  -2 * N / 10 ) ),
             ( 'NL', 'b3', (  -4 * N / 10 ) ),
             ( 'NL', 'b4', (  -8 * N / 10 ) ),
-            ( 'ES', 'b5', ( -16 * N / 10 ) ),
-            ( 'NL', 'b2', (  -2 * N / 10 ) ),
-            ( 'NL', 'b1', (  -1 * N / 10 ) ),
-            ( 'ES', 'b2', (  -2 * N / 10 ) ),
-            ( 'ES', 'b4', (  -8 * N / 10 ) ),
+            ( 'NL', 'b5', ( -16 * N / 10 ) ),
         )
-        for row, expected_result in itertools.izip(result, expected_results):
+        for row, expected_result in itertools.izip(sorted(result), sorted(expected_results)):
             self.assertTrue(row.f0 == expected_result[0],
                             "groupby not working correctly")
             self.assertTrue(row.f1 == expected_result[1],
@@ -2074,18 +2074,17 @@ class groupbyTest(MayBeDiskTest):
         # print result
         expected_results = (
             ( 'ES', 'b1', (  1 * N / 10 ), (  -1 * N / 10 ) ),
-            ( 'NL', 'b5', ( 16 * N / 10 ), ( -16 * N / 10 ) ),
+            ( 'ES', 'b2', (  2 * N / 10 ), (  -2 * N / 10 ) ),
             ( 'ES', 'b3', (  4 * N / 10 ), (  -4 * N / 10 ) ),
+            ( 'ES', 'b4', (  8 * N / 10 ), (  -8 * N / 10 ) ),
+            ( 'ES', 'b5', ( 16 * N / 10 ), ( -16 * N / 10 ) ),
+            ( 'NL', 'b1', (  1 * N / 10 ), (  -1 * N / 10 ) ),
+            ( 'NL', 'b2', (  2 * N / 10 ), (  -2 * N / 10 ) ),
             ( 'NL', 'b3', (  4 * N / 10 ), (  -4 * N / 10 ) ),
             ( 'NL', 'b4', (  8 * N / 10 ), (  -8 * N / 10 ) ),
-            ( 'ES', 'b5', ( 16 * N / 10 ), ( -16 * N / 10 ) ),
-            ( 'NL', 'b2', (  2 * N / 10 ), (  -2 * N / 10 ) ),
-            ( 'NL', 'b1', (  1 * N / 10 ), (  -1 * N / 10 ) ),
-            ( 'ES', 'b2', (  2 * N / 10 ), (  -2 * N / 10 ) ),
-            ( 'ES', 'b4', (  8 * N / 10 ), (  -8 * N / 10 ) ),
+            ( 'NL', 'b5', ( 16 * N / 10 ), ( -16 * N / 10 ) ),
         )
-        for row, expected_result in itertools.izip(result, expected_results):
-            print row, expected_result
+        for row, expected_result in itertools.izip(sorted(result), sorted(expected_results)):
             self.assertTrue(row.f0 == expected_result[0],
                             "groupby not working correctly")
             self.assertTrue(row.f1 == expected_result[1],
