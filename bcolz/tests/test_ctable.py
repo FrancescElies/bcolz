@@ -18,6 +18,7 @@ from bcolz.tests.common import (
     MayBeDiskTest, TestCase, unittest, skipUnless)
 import bcolz
 from bcolz.py2help import xrange
+import itertools
 
 
 class createTest(MayBeDiskTest):
@@ -1858,6 +1859,118 @@ class where_terms_veryLargeDiskTest(where_termsTest, TestCase):
     N = 10 * 10000
     disk = True
 
+class groupbyTest(MayBeDiskTest):
+    """
+    result = [r.user_id for r in nzlens.where(
+        "(title == 'Tom and Huck (1995)') & (rating == 5)",
+        outcols=['user_id'])
+    ]
+    """
+
+    def _gen_circular_values(self, items, N):
+        len_tmp = len(items)
+        rb = np.array(
+            [
+                x for x in itertools.chain.from_iterable(
+                    itertools.repeat(items, ( N / len_tmp ) + 1)
+                )
+            ]
+        )
+        return rb[:N]
+
+    def test_00a(self):
+        """Testing groupby() grouping one column"""
+
+        group_a= ['ES', 'NL']  # f0
+        group_b = ['b1', 'b2', 'b3', 'b4', 'b5']  # f1
+        values_x = [1, 2]  # f2
+        values_y = [-1, -2]  # f3
+
+        N = self.N
+
+        ra = np.array([x for x in self._gen_circular_values(group_a, N)])
+        rb = np.array([x for x in self._gen_circular_values(group_b, N)])
+        rx = np.array(
+            [x for x in self._gen_circular_values(values_x, N)],
+            dtype=np.dtype("f8")
+        )
+        ry = np.array(
+            [x for x in self._gen_circular_values(values_y, N)],
+            dtype=np.dtype("i4")
+        )
+
+        rz = np.fromiter(
+            ((a,b,x,y)
+                          for a,b,x,y in itertools.izip(ra,rb,rx,ry)),
+            dtype='S2,S2,f8,i4'
+        )
+
+        t = bcolz.ctable(rz, rootdir=self.rootdir)
+
+        result = t.groupby(['f0'], ['f2'])
+        # print result
+        self.assertTrue(result[0][0] == "ES", "where_terms not working correctly")
+        self.assertTrue(result[0][1] == N/2, "where_terms not working correctly")
+        self.assertTrue(result[1][0] == "NL", "where_terms not working correctly")
+        self.assertTrue(result[1][1] == N, "where_terms not working correctly")
+
+    def test_00b(self):
+        """Testing groupby() grouping one column"""
+
+        group_a= ['ES', 'NL']  # f0
+        group_b = ['b1', 'b2', 'b3', 'b4', 'b5']  # f1
+        values_x = [1, 2]  # f2
+        values_y = [-1, -2]  # f3
+
+        N = self.N
+
+        ra = np.array([x for x in self._gen_circular_values(group_a, N)])
+        rb = np.array([x for x in self._gen_circular_values(group_b, N)])
+        rx = np.array(
+            [x for x in self._gen_circular_values(values_x, N)],
+            dtype=np.dtype("f8")
+        )
+        ry = np.array(
+            [x for x in self._gen_circular_values(values_y, N)],
+            dtype=np.dtype("i4")
+        )
+
+        rz = np.fromiter(
+            ((a,b,x,y)
+                          for a,b,x,y in itertools.izip(ra,rb,rx,ry)),
+            dtype='S2,S2,f8,i4'
+        )
+
+        t = bcolz.ctable(rz, rootdir=self.rootdir)
+
+        result = t.groupby(['f0'], ['f3'])
+        # print result
+        self.assertTrue(result[0][0] == "ES", "where_terms not working correctly")
+        self.assertTrue(result[0][1] == -N/2, "where_terms not working correctly")
+        self.assertTrue(result[1][0] == "NL", "where_terms not working correctly")
+        self.assertTrue(result[1][1] == -N, "where_terms not working correctly")
+
+
+class groupby_smallTest(groupbyTest, TestCase):
+    N = 10
+
+
+class groupby_largeTest(groupbyTest, TestCase):
+    N = 10 * 1000
+
+
+class groupby_smallDiskTest(groupbyTest, TestCase):
+    N = 10
+    disk = True
+
+
+class groupby_largeDiskTest(groupbyTest, TestCase):
+    N = 10 * 1000
+    disk = True
+
+class groupby_veryLargeDiskTest(groupbyTest, TestCase):
+    N = 10 * 10000
+    disk = True
 
 # This test goes here until a new test_toplevel.py would be created
 class walkTest(MayBeDiskTest, TestCase):
