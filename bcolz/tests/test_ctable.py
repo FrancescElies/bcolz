@@ -1869,19 +1869,14 @@ class groupbyTest(MayBeDiskTest):
 
     def _gen_circular_values(self, items, N):
         len_tmp = len(items)
-        rb = np.array(
-            [
-                x for x in itertools.chain.from_iterable(
-                    itertools.repeat(items, ( N / len_tmp ) + 1)
-                )
-            ]
-        )
+        rb = np.array([x for x in itertools.chain.from_iterable(
+            itertools.repeat(items, ( N / len_tmp ) + 1))])
         return rb[:N]
 
     def test_00a(self):
         """Testing groupby() grouping one column"""
 
-        group_a= ['ES', 'NL']  # f0
+        group_a = ['ES', 'NL']  # f0
         group_b = ['b1', 'b2', 'b3', 'b4', 'b5']  # f1
         values_x = [1, 2]  # f2
         values_y = [-1, -2]  # f3
@@ -1900,24 +1895,22 @@ class groupbyTest(MayBeDiskTest):
         )
 
         rz = np.fromiter(
-            ((a,b,x,y)
-                          for a,b,x,y in itertools.izip(ra,rb,rx,ry)),
-            dtype='S2,S2,f8,i4'
-        )
+            ((a, b, x, y) for a, b, x, y in itertools.izip(ra, rb, rx, ry)),
+            dtype='S2,S2,f8,i4')
 
         t = bcolz.ctable(rz, rootdir=self.rootdir)
 
         result = t.groupby(['f0'], ['f2'])
         # print result
-        self.assertTrue(result[0][0] == "ES", "where_terms not working correctly")
-        self.assertTrue(result[0][1] == N/2, "where_terms not working correctly")
-        self.assertTrue(result[1][0] == "NL", "where_terms not working correctly")
-        self.assertTrue(result[1][1] == N, "where_terms not working correctly")
+        self.assertTrue(result[0][0] == "ES", "groupby not working correctly")
+        self.assertTrue(result[0][1] == N / 2, "groupby not working correctly")
+        self.assertTrue(result[1][0] == "NL", "groupby not working correctly")
+        self.assertTrue(result[1][1] == N, "groupby not working correctly")
 
     def test_00b(self):
         """Testing groupby() grouping one column"""
 
-        group_a= ['ES', 'NL']  # f0
+        group_a = ['ES', 'NL']  # f0
         group_b = ['b1', 'b2', 'b3', 'b4', 'b5']  # f1
         values_x = [1, 2]  # f2
         values_y = [-1, -2]  # f3
@@ -1936,20 +1929,117 @@ class groupbyTest(MayBeDiskTest):
         )
 
         rz = np.fromiter(
-            ((a,b,x,y)
-                          for a,b,x,y in itertools.izip(ra,rb,rx,ry)),
-            dtype='S2,S2,f8,i4'
-        )
+            ((a, b, x, y) for a, b, x, y in itertools.izip(ra, rb, rx, ry)),
+            dtype='S2,S2,f8,i4')
 
         t = bcolz.ctable(rz, rootdir=self.rootdir)
 
         result = t.groupby(['f0'], ['f3'])
         # print result
-        self.assertTrue(result[0][0] == "ES", "where_terms not working correctly")
-        self.assertTrue(result[0][1] == -N/2, "where_terms not working correctly")
-        self.assertTrue(result[1][0] == "NL", "where_terms not working correctly")
-        self.assertTrue(result[1][1] == -N, "where_terms not working correctly")
+        self.assertTrue(result[0][0] == "ES", "groupby not working correctly")
+        self.assertTrue(result[0][1] == -N / 2, "groupby not working correctly")
+        self.assertTrue(result[1][0] == "NL", "groupby not working correctly")
+        self.assertTrue(result[1][1] == -N, "groupby not working correctly")
 
+    def test_01a(self):
+        """Testing groupby() grouping two columns"""
+
+        group_a = ['ES', 'NL']  # f0
+        group_b = ['b1', 'b2', 'b3', 'b4', 'b5']  # f1
+        values_x = [1, 2, 4, 8, 16]  # f2
+        values_y = [-1, -2, -4, -8, -16]  # f3
+
+        N = self.N
+
+        ra = np.array([x for x in self._gen_circular_values(group_a, N)])
+        rb = np.array([x for x in self._gen_circular_values(group_b, N)])
+        rx = np.array(
+            [x for x in self._gen_circular_values(values_x, N)],
+            dtype=np.dtype("f8")
+        )
+        ry = np.array(
+            [x for x in self._gen_circular_values(values_y, N)],
+            dtype=np.dtype("i4")
+        )
+
+        rz = np.fromiter(
+            ((a, b, x, y) for a, b, x, y in itertools.izip(ra, rb, rx, ry)),
+            dtype='S2,S2,f8,i4')
+
+        t = bcolz.ctable(rz, rootdir=self.rootdir)
+
+        result = t.groupby(['f0', 'f1'], ['f2'])
+        # print result
+        expected_results = (
+            ( 'ES', 'b1', (  1 * N / 10 ) ),
+            ( 'NL', 'b5', ( 16 * N / 10 ) ),
+            ( 'ES', 'b3', (  4 * N / 10 ) ),
+            ( 'NL', 'b3', (  4 * N / 10 ) ),
+            ( 'NL', 'b4', (  8 * N / 10 ) ),
+            ( 'ES', 'b5', ( 16 * N / 10 ) ),
+            ( 'NL', 'b2', (  2 * N / 10 ) ),
+            ( 'NL', 'b1', (  1 * N / 10 ) ),
+            ( 'ES', 'b2', (  2 * N / 10 ) ),
+            ( 'ES', 'b4', (  8 * N / 10 ) ),
+        )
+        for row, expected_result in itertools.izip(result, expected_results):
+            self.assertTrue(row.f0 == expected_result[0],
+                            "groupby not working correctly")
+            self.assertTrue(row.f1 == expected_result[1],
+                            "groupby not working correctly")
+            self.assertTrue(row.f2 == expected_result[2],
+                            "groupby not working correctly")
+
+    def test_01b(self):
+        """Testing groupby() grouping two columns"""
+
+        group_a = ['ES', 'NL']  # f0
+        group_b = ['b1', 'b2', 'b3', 'b4', 'b5']  # f1
+        values_x = [1, 2, 4, 8, 16]  # f2
+        values_y = [-1, -2, -4, -8, -16]  # f3
+
+        N = self.N
+
+        ra = np.array([x for x in self._gen_circular_values(group_a, N)])
+        rb = np.array([x for x in self._gen_circular_values(group_b, N)])
+        rx = np.array(
+            [x for x in self._gen_circular_values(values_x, N)],
+            dtype=np.dtype("f8")
+        )
+        ry = np.array(
+            [x for x in self._gen_circular_values(values_y, N)],
+            dtype=np.dtype("i4")
+        )
+
+        rz = np.fromiter(
+            ((a, b, x, y)
+             for a, b, x, y in itertools.izip(ra, rb, rx, ry)),
+            dtype='S2,S2,f8,i4'
+        )
+
+        t = bcolz.ctable(rz, rootdir=self.rootdir)
+
+        result = t.groupby(['f0', 'f1'], ['f3'])
+        # print result
+        expected_results = (
+            ( 'ES', 'b1', (  -1 * N / 10 ) ),
+            ( 'NL', 'b5', ( -16 * N / 10 ) ),
+            ( 'ES', 'b3', (  -4 * N / 10 ) ),
+            ( 'NL', 'b3', (  -4 * N / 10 ) ),
+            ( 'NL', 'b4', (  -8 * N / 10 ) ),
+            ( 'ES', 'b5', ( -16 * N / 10 ) ),
+            ( 'NL', 'b2', (  -2 * N / 10 ) ),
+            ( 'NL', 'b1', (  -1 * N / 10 ) ),
+            ( 'ES', 'b2', (  -2 * N / 10 ) ),
+            ( 'ES', 'b4', (  -8 * N / 10 ) ),
+        )
+        for row, expected_result in itertools.izip(result, expected_results):
+            self.assertTrue(row.f0 == expected_result[0],
+                            "groupby not working correctly")
+            self.assertTrue(row.f1 == expected_result[1],
+                            "groupby not working correctly")
+            self.assertTrue(row.f3 == expected_result[2],
+                            "groupby not working correctly")
 
 class groupby_smallTest(groupbyTest, TestCase):
     N = 10
