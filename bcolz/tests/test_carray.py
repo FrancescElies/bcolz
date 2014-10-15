@@ -13,6 +13,8 @@ import sys
 import struct
 
 import numpy as np
+import random
+import string
 from numpy.testing import assert_array_equal, assert_allclose
 from bcolz.tests import common
 from bcolz.tests.common import (
@@ -2075,20 +2077,25 @@ class factorizeStringsTest(MayBeDiskTest, TestCase):
         MayBeDiskTest.tearDown(self)
 
     def test00(self):
-        """Factorizing all extreme case all values are unique"""
-        # todo: dtype dynamic
-        dtype = 'S1000'
+        """Factorizing strings where all values are unique"""
+        str_size = 20
+        dtype = 'S' + str(str_size)
 
-        c = bcolz.fromiter((i for i in xrange(self.N)),
-                           dtype=dtype,
-                           count=self.N,
-                           rootdir=self.rootdir)
+        letters = string.printable
 
+        # Be careful with random input generation might lead to
+        # improbable repeated strings
+        random.seed(1)
+        c = bcolz.fromiter(
+            (''.join(random.choice(letters) for i in range(str_size))
+            for _ in xrange(self.N)),
+            dtype=dtype,
+            count=self.N,
+            rootdir=self.rootdir)
         ref = np.fromiter((i for i in xrange(self.N)), dtype='uint64')
 
         labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
-        print labels
-        print ref
+
         assert_array_equal(labels[:], ref, "Arrays are not equal")
 
 
