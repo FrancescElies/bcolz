@@ -2059,6 +2059,58 @@ class compressorsDiskTest(bloscCompressorsTest, TestCase):
     disk = True
 
 
+class factorizeStringsTest(MayBeDiskTest, TestCase):
+    def setUp(self):
+        MayBeDiskTest.setUp(self)
+        if self.disk:
+            self.rootdir_labels = self.rootdir + 'label'
+            self.c_labels = bcolz.carray([], dtype='uint64',
+                                      rootdir=self.rootdir_labels,
+                                      expectedlen=self.N)
+        else:
+            self.c_labels = None
+
+    def tearDown(self):
+        # self.rootdir_labels will also be deleted with the following
+        MayBeDiskTest.tearDown(self)
+
+    def test00(self):
+        """Factorizing all extreme case all values are unique"""
+        # todo: dtype dynamic
+        dtype = 'S1000'
+
+        c = bcolz.fromiter((i for i in xrange(self.N)),
+                           dtype=dtype,
+                           count=self.N,
+                           rootdir=self.rootdir)
+
+        ref = np.fromiter((i for i in xrange(self.N)), dtype='uint64')
+
+        labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
+        print labels
+        print ref
+        assert_array_equal(labels[:], ref, "Arrays are not equal")
+
+
+
+class factorizeStringsSmall(factorizeStringsTest):
+    N = 10
+
+
+class factorizeStringsDiskSmall(factorizeStringsTest):
+    N = 10
+    disk = True
+
+
+class factorizeStringsBig(factorizeStringsTest):
+    N = int(1e4)
+
+
+class factorizeStringsDiskBig(factorizeStringsTest):
+    N = int(1e5)
+    disk = True
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
 
