@@ -2099,6 +2099,27 @@ class factorizeStringsTest(MayBeDiskTest, TestCase):
 
         assert_array_equal(labels[:], ref, "Arrays are not equal")
 
+    def test01(self):
+        """Factorizing strings with repeated values"""
+        import pandas
+
+        dtype = 'S1'
+        letters = 'ABCD'
+        random.seed(1)
+        c = bcolz.fromiter(
+            (random.choice(letters) for i in range(self.N)),
+            dtype=dtype,
+            count=self.N,
+            rootdir=self.rootdir)
+        labels_ref, reverse_ref = pandas.factorize(c)
+        if self.c_labels:
+            labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
+        else:
+            labels, reverse = bcolz.carray_ext.factorize_cython(c)
+        assert_array_equal(labels, labels_ref, "Arrays are not equal")
+        for n, item in enumerate(reverse_ref):
+            assert reverse[n] == item
+
 
 class factorizeStringsSmall(factorizeStringsTest):
     N = 10
