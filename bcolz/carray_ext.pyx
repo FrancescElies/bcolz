@@ -2718,6 +2718,35 @@ def factorize_cython(carray carray_, carray labels=None):
 
     return labels, reverse
 
+def groupsort_indexer_cython(carray labels, dict reverse):
+    cdef:
+        npy_uint64 ngroups, n, i
+        carray counts, where, result
+
+    ngroups = len(reverse)
+
+    # count group sizes, location 0 for NA
+    counts = bcolz.fromiter(
+        (0 for x in xrange(ngroups + 1)), dtype='uint64', count=ngroups + 1)
+    n = len(labels)
+    for i in range(n):
+        counts[labels[i] + 1] += 1
+
+    # mark the start of each contiguous group of like-indexed data
+    where = bcolz.fromiter(
+        (0 for x in xrange(ngroups + 1)), dtype='uint64', count=ngroups + 1)
+    for i in range(1, ngroups + 1):
+        where[i] = where[i - 1] + counts[i - 1]
+
+    # this is our indexer
+    result = bcolz.fromiter(
+        (0 for x in xrange(n)), dtype='uint64', count=n)
+    for i in range(n):
+        label = labels[i] + 1
+        result[where[label]] = i
+        where[label] += 1
+    return result, counts
+
 ## Local Variables:
 ## mode: python
 ## tab-width: 4

@@ -71,6 +71,9 @@ shutil.rmtree(rootdir)
 c = bcolz.carray(a, bcolz.cparams(clevel=5, shuffle=False, cname='blosclz'), rootdir=rootdir)
 print c
 labels, reverse = bcolz.carray_ext.factorize_cython(c)
+result, counts = bcolz.carray_ext.groupsort_indexer_cython(labels, reverse)
+result_ref, counts_ref = groupsort_indexer(labels, reverse)
 print labels, reverse
-print groupsort_indexer(labels, reverse)
+print result, counts
+print result_ref, counts_ref
 shutil.rmtree(rootdir)
