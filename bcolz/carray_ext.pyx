@@ -2718,6 +2718,8 @@ def factorize_cython(carray carray_, carray labels=None):
 
     return labels, reverse
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def groupsort_indexer_cython(carray labels, dict reverse):
     cdef:
         npy_uint64 ngroups, n, i
