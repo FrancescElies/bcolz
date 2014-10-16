@@ -2731,6 +2731,11 @@ def groupsort_indexer_cython(carray labels, dict reverse):
     # count group sizes, location 0 for NA
     counts = bcolz.zeros(ngroups + 1, dtype='uint64')
     n = len(labels)
+    # TODO: https://github.com/Blosc/bcolz/issues/76#issuecomment-59436942
+    #       @esc suggestions:
+    #       -  consider to do this directly as part of factorize. Drawback
+    #          would be you don't know how many groups you have beforehand
+    #       -  consider hashtable based unique before factorization and counting
     for i in range(n):
         counts[labels[i] + 1] += 1
 
