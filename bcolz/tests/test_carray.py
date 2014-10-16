@@ -2105,11 +2105,13 @@ class factorizeStringsTest(MayBeDiskTest):
         # 9 letters assures at least one repetition
         # N allowed should be bigger or equal 10
         letters = 'ABCDEFGHI'
-        random.seed(1)
         dtype = 'S1'
 
+        random.seed(1)
         c_ref = np.fromiter(
             (random.choice(letters) for i in range(self.N)), dtype=dtype)
+
+        random.seed(1)
         c = bcolz.fromiter(
             (random.choice(letters) for i in range(self.N)),
             dtype=dtype,
