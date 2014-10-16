@@ -15,6 +15,7 @@ import struct
 import numpy as np
 import random
 import string
+import sys
 from numpy.testing import assert_array_equal, assert_allclose
 from bcolz.tests import common
 from bcolz.tests.common import (
@@ -2067,8 +2068,8 @@ class factorizeStringsTest(MayBeDiskTest, TestCase):
         if self.disk:
             self.rootdir_labels = self.rootdir + 'label'
             self.c_labels = bcolz.carray([], dtype='uint64',
-                                      rootdir=self.rootdir_labels,
-                                      expectedlen=self.N)
+                                           rootdir=self.rootdir_labels,
+                                           expectedlen=self.N)
         else:
             self.c_labels = None
 
@@ -2088,7 +2089,7 @@ class factorizeStringsTest(MayBeDiskTest, TestCase):
         random.seed(1)
         c = bcolz.fromiter(
             (''.join(random.choice(letters) for i in range(str_size))
-            for _ in xrange(self.N)),
+             for _ in xrange(self.N)),
             dtype=dtype,
             count=self.N,
             rootdir=self.rootdir)
@@ -2097,7 +2098,6 @@ class factorizeStringsTest(MayBeDiskTest, TestCase):
         labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
 
         assert_array_equal(labels[:], ref, "Arrays are not equal")
-
 
 
 class factorizeStringsSmall(factorizeStringsTest):
@@ -2114,6 +2114,61 @@ class factorizeStringsBig(factorizeStringsTest):
 
 
 class factorizeStringsDiskBig(factorizeStringsTest):
+    N = int(1e5)
+    disk = True
+
+
+class factorizeIntsTest(MayBeDiskTest, TestCase):
+    def helper_uint(self, power):
+        max_value = 2 ** power
+        dtype = 'uint' + str(power)
+        random.seed(1)
+        low_threshold = 0
+        if self.N < max_value:
+            high_threshold = self.N
+        else:
+            high_threshold = max_value
+        c = bcolz.fromiter(
+            (n for n in xrange(high_threshold)),
+            dtype=dtype,
+            count=high_threshold,
+            rootdir=self.rootdir)
+
+        ref = np.fromiter((i for i in xrange(self.N)), dtype=dtype)
+        labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
+        assert_array_equal(labels[:], ref, "Arrays are not equal")
+
+    def test01(self):
+        """Factorizing int8 dtypes where all values are unique"""
+        self.helper_uint(8)
+
+    def test02(self):
+        """Factorizing int16 dtypes where all values are unique"""
+        self.helper_uint(16)
+
+    def test03(self):
+        """Factorizing int32 dtypes where all values are unique"""
+        self.helper_uint(32)
+
+    def test04(self):
+        """Factorizing int64 dtypes where all values are unique"""
+        self.helper_uint(64)
+
+
+class factorizeIntsSmall(factorizeIntsTest):
+    N = 10
+
+
+class factorizeIntsDiskSmall(factorizeIntsTest):
+    N = 10
+    disk = True
+
+
+class factorizeIntsBig(factorizeIntsTest):
+    N = int(1e4)
+
+
+class factorizeIntsDiskBig(factorizeIntsTest):
     N = int(1e5)
     disk = True
 
