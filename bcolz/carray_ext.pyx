@@ -2727,6 +2727,7 @@ def groupsort_indexer_cython(carray labels, dict reverse):
 
     ngroups = len(reverse)
 
+    # TODO: make posible out of core carrays
     # count group sizes, location 0 for NA
     counts = bcolz.fromiter(
         (0 for x in xrange(ngroups + 1)), dtype='uint64', count=ngroups + 1)
