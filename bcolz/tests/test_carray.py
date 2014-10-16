@@ -13,6 +13,7 @@ import sys
 import struct
 
 import numpy as np
+import pandas
 import random
 import string
 import sys
@@ -2066,7 +2067,7 @@ class factorizeStringsTest(MayBeDiskTest):
     def setUp(self):
         MayBeDiskTest.setUp(self)
         if self.disk:
-            self.rootdir_labels = self.rootdir + 'label'
+            self.rootdir_labels = self.rootdir + '-labels-'
             self.c_labels = bcolz.carray([], dtype='uint64',
                                            rootdir=self.rootdir_labels,
                                            expectedlen=self.N)
@@ -2100,22 +2101,31 @@ class factorizeStringsTest(MayBeDiskTest):
         assert_array_equal(labels[:], ref, "Arrays are not equal")
 
     def test01(self):
-        """Factorizing strings with repeated values"""
-        import pandas
-
-        dtype = 'S1'
-        letters = 'ABCD'
+        """Factorizing strings with repeated values, pandas reference"""
+        # 9 letters assures at least one repetition
+        # N allowed should be bigger or equal 10
+        letters = 'ABCDEFGHI'
         random.seed(1)
+        dtype = 'S1'
+
+        c_ref = np.fromiter(
+            (random.choice(letters) for i in range(self.N)), dtype=dtype)
         c = bcolz.fromiter(
             (random.choice(letters) for i in range(self.N)),
             dtype=dtype,
             count=self.N,
             rootdir=self.rootdir)
-        labels_ref, reverse_ref = pandas.factorize(c)
+
+        # Factorize bcolz
         if self.c_labels:
             labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
         else:
             labels, reverse = bcolz.carray_ext.factorize_cython(c)
+
+        # Result used as reference
+        labels_ref, reverse_ref = pandas.factorize(c_ref)
+
+        # Assert we obtain same results as pandas
         assert_array_equal(labels, labels_ref, "Arrays are not equal")
         for n, item in enumerate(reverse_ref):
             assert reverse[n] == item
