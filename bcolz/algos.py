@@ -47,7 +47,6 @@ def groupsort_indexer(labels, reverse):
     counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(labels)
     for i in range(n):
-        print labels[i] +1
         counts[labels[i] + 1] += 1
 
     # mark the start of each contiguous group of like-indexed data
@@ -64,11 +63,14 @@ def groupsort_indexer(labels, reverse):
     return result, counts
 
 import numpy, random, bcolz, tempfile, shutil
-N = int(1e2)
+random.seed(1)
+N = int(20)
 a = numpy.fromiter((random.choice(['NY', 'IL', 'OH', 'CA']) for _ in xrange(N)), dtype='S2')
 rootdir = tempfile.mkdtemp(prefix='bcolz-factorize')
 shutil.rmtree(rootdir)
 c = bcolz.carray(a, bcolz.cparams(clevel=5, shuffle=False, cname='blosclz'), rootdir=rootdir)
+print c
 labels, reverse = bcolz.carray_ext.factorize_cython(c)
+print labels, reverse
 print groupsort_indexer(labels, reverse)
 shutil.rmtree(rootdir)
