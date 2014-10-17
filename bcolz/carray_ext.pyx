@@ -2722,14 +2722,16 @@ def factorize_cython(carray carray_, carray labels=None):
 @cython.wraparound(False)
 def groupsort_indexer_cython(carray labels, dict reverse):
     cdef:
-        npy_uint64 ngroups, n, i
-        carray counts, where, result
+        npy_uint64 ngroups, n, i, label_, label
+        # carray where, result
+        ndarray[int64_t] where, result, counts
 
     ngroups = len(reverse)
 
     # TODO: make posible out of core carrays
     # count group sizes, location 0 for NA
-    counts = bcolz.zeros(ngroups + 1, dtype='uint64')
+    # counts = bcolz.zeros(ngroups + 1, dtype='uint64')  # todo: problem with different types
+    counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(labels)
     # TODO: https://github.com/Blosc/bcolz/issues/76#issuecomment-59436942
     #       @esc suggestions:
@@ -2740,16 +2742,171 @@ def groupsort_indexer_cython(carray labels, dict reverse):
         counts[labels[i] + 1] += 1
 
     # mark the start of each contiguous group of like-indexed data
-    where = bcolz.zeros(ngroups + 1, dtype='uint64')
+    # where = bcolz.zeros(ngroups + 1, dtype='uint64')
+    where = np.zeros(ngroups + 1, dtype=np.int64)
     for i in range(1, ngroups + 1):
         where[i] = where[i - 1] + counts[i - 1]
 
     # this is our indexer
-    result = bcolz.zeros(n, dtype='uint64')
-    for i in range(n):
-        label = labels[i] + 1
+    # result = bcolz.zeros(n, dtype='uint64')
+    result = np.zeros(n, dtype=np.int64)
+    i = 0
+    for label_ in labels.iter():
+    # for i in range(n):  # TODO: check label is suddenly <type 'numpy.float64'>, see https://github.com/FrancescElies/bcolz/commit/e55c6e31ea431de1c613ac54bb4b0a364618690d
+        label = label_ + 1
+        # label = labels[i] + 1
         result[where[label]] = i
         where[label] += 1
+        i += 1
+    return result, counts
+
+# ---------------------------------------------------------------------------
+
+# Starts section: factorize with counting and group_sorting without it
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void _factorize_helper_with_counts(Py_ssize_t iter_range,
+                       Py_ssize_t allocation_size,
+                       ndarray in_buffer,
+                       ndarray[npy_uint64] out_buffer,
+                       kh_str_t *table,
+                       Py_ssize_t * count,
+                       dict reverse,
+                       list counts,
+                       ):
+    cdef:
+        Py_ssize_t i, idx
+        int ret
+        char * element
+        char * insert
+        khiter_t k
+
+    ret = 0
+
+    for i in range(iter_range):
+        # TODO: Consider indexing directly into the array for efficiency
+        element = in_buffer[i]
+        k = kh_get_str(table, element)
+        if k != table.n_buckets:
+            idx = table.vals[k]
+        else:
+            # allocate enough memory to hold the string, add one for the
+            # null byte that marks the end of the string.
+            insert = <char *>malloc(allocation_size)
+            # TODO: is strcpy really the best way to copy a string?
+            strcpy(insert, element)
+            k = kh_put_str(table, insert, &ret)
+            table.vals[k] = idx = count[0]
+            reverse[count[0]] = element
+            count[0] += 1
+        out_buffer[i] = idx
+
+        if idx + 1 >= len(counts):
+            counts.append(1)
+        else:
+            counts[idx + 1] += 1
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def factorize_with_counts_cython(carray carray_, carray labels=None):
+    cdef:
+        chunk chunk_
+        Py_ssize_t n, i, count, chunklen, leftover_elements
+        dict reverse
+        ndarray in_buffer
+        ndarray[npy_uint64] out_buffer
+        kh_str_t *table
+        list counts
+
+    counts = []
+
+    #TODO: check that the input is a string_ dtype type
+    count = 0
+    ret = 0
+    reverse = {}
+
+    n = len(carray_)
+    chunklen = carray_.chunklen
+    if labels is None:
+        labels = carray([], dtype='uint64', expectedlen=n)
+    # in-buffer isn't typed, because cython doesn't support string arrays (?)
+    out_buffer = np.empty(chunklen, dtype='uint64')
+    in_buffer = np.empty(chunklen, dtype=carray_.dtype)
+    table = kh_init_str()
+
+    for i in range(carray_.nchunks):
+        chunk_ = carray_.chunks[i]
+        # decompress into in_buffer
+        chunk_._getitem(0, chunklen, in_buffer.data)
+        _factorize_helper_with_counts(chunklen,
+                                      carray_.dtype.itemsize + 1,
+                                      in_buffer,
+                                      out_buffer,
+                                      table,
+                                      &count,
+                                      reverse,
+                                      counts,
+                                      )
+        # compress out_buffer into labels
+        labels.append(out_buffer)
+
+    leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
+    # TODO what if there are no leftover elements
+    _factorize_helper_with_counts(leftover_elements,
+                                  carray_.dtype.itemsize + 1,
+                                  carray_.leftover_array,
+                                  out_buffer,
+                                  table,
+                                  &count,
+                                  reverse,
+                                  counts,
+                                  )
+
+    # compress out_buffer into labels
+    labels.append(out_buffer[:leftover_elements])
+
+    kh_destroy_str(table)
+
+    return labels, reverse, counts
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def groupsort_indexer_without_counts_cython(carray labels, dict reverse,
+                                            list counts
+                                            ):
+    cdef:
+        npy_uint64 ngroups, n, i, label_, label
+        # carray where, result
+        ndarray[int64_t] where, result
+
+    ngroups = len(reverse)
+
+    # TODO: make posible out of core carrays
+    # count group sizes, location 0 for NA
+    n = len(labels)
+    # TODO: https://github.com/Blosc/bcolz/issues/76#issuecomment-59436942
+    #       @esc suggestions:
+    #       -  consider to do this directly as part of factorize. Drawback
+    #          would be you don't know how many groups you have beforehand
+    #       -  consider hashtable based unique before factorization and counting
+
+    # mark the start of each contiguous group of like-indexed data
+    # where = bcolz.zeros(ngroups + 1, dtype='uint64')
+    where = np.zeros(ngroups + 1, dtype=np.int64)
+    for i in range(1, ngroups + 1):
+        where[i] = where[i - 1] + counts[i - 1]
+
+    # this is our indexer
+    # result = bcolz.zeros(n, dtype='uint64')
+    result = np.zeros(n, dtype=np.int64)
+    i = 0
+    for label_ in labels.iter():
+    # for i in range(n):  # TODO: check label is suddenly <type 'numpy.float64'>, see https://github.com/FrancescElies/bcolz/commit/e55c6e31ea431de1c613ac54bb4b0a364618690d
+        label = label_ + 1
+        # label = labels[i] + 1
+        result[where[label]] = i
+        where[label] += 1
+        i += 1
     return result, counts
 
 ## Local Variables:
