@@ -2075,7 +2075,7 @@ class factorizeStringsTest(MayBeDiskTest):
             self.c_labels = None
 
     def tearDown(self):
-        # self.rootdir_labels will also be deleted with the following
+        # labels rootdir will also be deleted with the following
         MayBeDiskTest.tearDown(self)
 
     def test00(self):
@@ -2091,9 +2091,8 @@ class factorizeStringsTest(MayBeDiskTest):
         c = bcolz.fromiter(
             (''.join(random.choice(letters) for i in range(str_size))
              for _ in xrange(self.N)),
-            dtype=dtype,
-            count=self.N,
-            rootdir=self.rootdir)
+            dtype=dtype, count=self.N, rootdir=self.rootdir)
+
         ref = np.fromiter((i for i in xrange(self.N)), dtype='uint64')
 
         labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
@@ -2114,15 +2113,10 @@ class factorizeStringsTest(MayBeDiskTest):
         random.seed(1)
         c = bcolz.fromiter(
             (random.choice(letters) for i in range(self.N)),
-            dtype=dtype,
-            count=self.N,
-            rootdir=self.rootdir)
+            dtype=dtype, count=self.N, rootdir=self.rootdir)
 
         # Factorize bcolz
-        if self.c_labels:
-            labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
-        else:
-            labels, reverse = bcolz.carray_ext.factorize_cython(c)
+        labels, reverse = bcolz.carray_ext.factorize_cython(c, self.c_labels)
 
         # Result used as reference
         labels_ref, reverse_ref = pandas.factorize(c_ref)
@@ -2208,6 +2202,58 @@ class factorizeIntsBig(factorizeIntsTest, TestCase):
 class factorizeIntsDiskBig(factorizeIntsTest, TestCase):
     N = int(1e5)
     disk = True
+
+
+class groupsortIndexerTest(MayBeDiskTest):
+    def setUp(self):
+        MayBeDiskTest.setUp(self)
+        if self.disk:
+            self.rootdir_labels = self.rootdir + '-labels-'
+            self.c_labels = bcolz.carray([], dtype='uint64',
+                                           rootdir=self.rootdir_labels,
+                                           expectedlen=self.N)
+        else:
+            self.c_labels = None
+
+    def tearDown(self):
+        # labels rootdir will also be deleted with the following
+        MayBeDiskTest.tearDown(self)
+
+    def test00(self):
+        """Factorizing strings with repeated values, pandas reference"""
+        # 9 letters assures at least one repetition
+        # N allowed should be bigger or equal 10
+        letters = 'ABCDEFGHI'
+        dtype = 'S1'
+
+
+        random.seed(1)
+        c = bcolz.fromiter(
+            (random.choice(letters) for i in range(self.N)),
+            dtype=dtype, count=self.N, rootdir=self.rootdir)
+
+        # Factorize bcolz
+        labels, reverse = \
+            bcolz.carray_ext.factorize_cython(c, self.c_labels)
+        # Group sort
+        result, counts = \
+            bcolz.carray_ext.groupsort_indexer_cython(labels, reverse)
+        print result, counts
+
+        # TODO: compare output to a stable algorithm
+
+
+class groupsortIndexerSmall(groupsortIndexerTest, TestCase):
+    N = 10
+
+
+class groupsortIndexerDiskSmall(groupsortIndexerTest, TestCase):
+    N = 10
+    disk = True
+
+
+class groupsortIndexerBig(groupsortIndexerTest, TestCase):
+    N = int(1e4)
 
 
 if __name__ == '__main__':
