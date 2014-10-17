@@ -2789,6 +2789,7 @@ cdef void _factorize_helper_with_counts(Py_ssize_t iter_range,
         k = kh_get_str(table, element)
         if k != table.n_buckets:
             idx = table.vals[k]
+            counts[idx + 1] += 1
         else:
             # allocate enough memory to hold the string, add one for the
             # null byte that marks the end of the string.
@@ -2799,12 +2800,9 @@ cdef void _factorize_helper_with_counts(Py_ssize_t iter_range,
             table.vals[k] = idx = count[0]
             reverse[count[0]] = element
             count[0] += 1
+            counts.append(1)
         out_buffer[i] = idx
 
-        if idx + 1 >= len(counts):
-            counts.append(1)
-        else:
-            counts[idx + 1] += 1
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -2818,7 +2816,7 @@ def factorize_with_counts_cython(carray carray_, carray labels=None):
         kh_str_t *table
         list counts
 
-    counts = []
+    counts = [0]
 
     #TODO: check that the input is a string_ dtype type
     count = 0
