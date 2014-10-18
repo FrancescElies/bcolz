@@ -2722,34 +2722,44 @@ def factorize_cython(carray carray_, carray labels=None):
 @cython.wraparound(False)
 def groupsort_indexer_cython(carray labels, dict reverse):
     cdef:
-        npy_uint64 ngroups, n, i, label_, label
-        # carray where, result
-        ndarray[int64_t] where, result, counts
+        npy_uint64 ngroups, n, i, label_, label, labels_chunklen, element
+        ndarray[npy_uint64] where, result, counts
+        chunk chunk_
+        ndarray in_buffer
 
     ngroups = len(reverse)
-
+    n = len(labels)
+    labels_chunklen = labels.chunklen
+    in_buffer = np.empty(labels_chunklen, dtype=labels.dtype)
     # TODO: make posible out of core carrays
     # count group sizes, location 0 for NA
     # counts = bcolz.zeros(ngroups + 1, dtype='uint64')  # todo: problem with different types
-    counts = np.zeros(ngroups + 1, dtype=np.int64)
-    n = len(labels)
+    counts = np.zeros(ngroups + 1, dtype='uint64')
     # TODO: https://github.com/Blosc/bcolz/issues/76#issuecomment-59436942
     #       @esc suggestions:
     #       -  consider to do this directly as part of factorize. Drawback
     #          would be you don't know how many groups you have beforehand
     #       -  consider hashtable based unique before factorization and counting
-    for i in range(n):
-        counts[labels[i] + 1] += 1
+
+    for i in range(labels.nchunks):
+        chunk_ = labels.chunks[i]
+        # decompress into in_buffer
+        chunk_._getitem(0, labels_chunklen, in_buffer.data)
+        for i in range(labels_chunklen):
+            counts[<npy_uint64>in_buffer[i] + 1] += 1
+    leftover_elements = cython.cdiv(labels.leftover, labels.atomsize)
+    for i in range(leftover_elements):
+            counts[<npy_uint64>labels.leftover_array[i] + 1] += 1
 
     # mark the start of each contiguous group of like-indexed data
     # where = bcolz.zeros(ngroups + 1, dtype='uint64')
-    where = np.zeros(ngroups + 1, dtype=np.int64)
+    where = np.zeros(<npy_uint64> (ngroups + 1), dtype='uint64')
     for i in range(1, ngroups + 1):
         where[i] = where[i - 1] + counts[i - 1]
 
     # this is our indexer
     # result = bcolz.zeros(n, dtype='uint64')
-    result = np.zeros(n, dtype=np.int64)
+    result = np.zeros(n, dtype='uint64')
     i = 0
     for label_ in labels.iter():
     # for i in range(n):  # TODO: check label is suddenly <type 'numpy.float64'>, see https://github.com/FrancescElies/bcolz/commit/e55c6e31ea431de1c613ac54bb4b0a364618690d
