@@ -62,7 +62,7 @@ IntType = np.dtype(np.int_)
 # numpy functions & objects
 from definitions cimport import_array, ndarray, dtype, \
     malloc, realloc, free, memcpy, memset, strdup, strcmp, \
-    npy_uint64, \
+    npy_uint64, npy_int64, \
     PyString_AsString, PyString_GET_SIZE, \
     PyString_FromStringAndSize, \
     Py_BEGIN_ALLOW_THREADS, Py_END_ALLOW_THREADS, \
@@ -2624,7 +2624,7 @@ cdef class carray:
         return fullrepr
 
 # ---------------------------------------------------------------------------
-# Starts section: factorize with counting and group_sorting without it
+# Factorize Section
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef void _factorize_str_helper(Py_ssize_t iter_range,
@@ -2720,6 +2720,103 @@ def factorize_str(carray carray_, carray labels=None):
 
     return labels, reverse
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void _factorize_int64_helper(Py_ssize_t iter_range,
+                       Py_ssize_t allocation_size,
+                       ndarray[npy_int64] in_buffer,
+                       ndarray[npy_uint64] out_buffer,
+                       kh_int64_t *table,
+                       Py_ssize_t * count,
+                       dict reverse,
+                       ):
+    cdef:
+        Py_ssize_t i, idx
+        int ret
+        npy_int64 element
+        khiter_t k
+
+    ret = 0
+
+    for i in range(iter_range):
+        # TODO: Consider indexing directly into the array for efficiency
+        element = in_buffer[i]
+        k = kh_get_int64(table, element)
+        if k != table.n_buckets:
+            idx = table.vals[k]
+        else:
+            k = kh_put_int64(table, element, &ret)
+            table.vals[k] = idx = count[0]
+            reverse[count[0]] = element
+            count[0] += 1
+        out_buffer[i] = idx
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def factorize_int64(carray carray_, carray labels=None):
+    cdef:
+        chunk chunk_
+        Py_ssize_t n, i, count, chunklen, leftover_elements
+        dict reverse
+        ndarray[npy_int64] in_buffer
+        ndarray[npy_uint64] out_buffer
+        kh_int64_t *table
+
+    count = 0
+    ret = 0
+    reverse = {}
+
+    n = len(carray_)
+    chunklen = carray_.chunklen
+    if labels is None:
+        labels = carray([], dtype='uint64', expectedlen=n)
+    # in-buffer isn't typed, because cython doesn't support string arrays (?)
+    out_buffer = np.empty(chunklen, dtype='uint64')
+    in_buffer = np.empty(chunklen, dtype=carray_.dtype)
+    table = kh_init_int64()
+
+    for i in range(carray_.nchunks):
+        chunk_ = carray_.chunks[i]
+        # decompress into in_buffer
+        chunk_._getitem(0, chunklen, in_buffer.data)
+        _factorize_int64_helper(chunklen,
+                        carray_.dtype.itemsize + 1,
+                        in_buffer,
+                        out_buffer,
+                        table,
+                        &count,
+                        reverse,
+                        )
+        # compress out_buffer into labels
+        labels.append(out_buffer)
+
+    leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
+    if leftover_elements > 0:
+        _factorize_int64_helper(leftover_elements,
+                          carray_.dtype.itemsize + 1,
+                          carray_.leftover_array,
+                          out_buffer,
+                          table,
+                          &count,
+                          reverse,
+                          )
+
+    # compress out_buffer into labels
+    labels.append(out_buffer[:leftover_elements])
+
+    kh_destroy_int64(table)
+
+    return labels, reverse
+
+def factorize(carray carray_, carray labels=None):
+    if carray_.dtype == 'int64':
+        labels, reverse = factorize_int64(carray_, labels=labels)
+    else:
+        labels, reverse = factorize_str(carray_, labels=labels)
+    return labels, reverse
+
+# ---------------------------------------------------------------------------
+# Sorts Section
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def groupsort_factor_carray(carray labels, npy_uint64 ngroups):

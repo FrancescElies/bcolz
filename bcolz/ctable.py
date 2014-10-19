@@ -1280,7 +1280,7 @@ class ctable(object):
             if refresh or not os.path.exists(col_factor_rootdir):
                 carray_factor = carray_ext.carray([], dtype='int64', expectedlen=self.size,
                                                     rootdir=col_factor_rootdir, mode='w')
-                _, values = carray_ext.factorize_str(self[col], labels=carray_factor)
+                _, values = carray_ext.factorize(self[col], labels=carray_factor)
                 carray_factor.flush()
                 carray_values = carray_ext.carray(values.values(), dtype=self[col].dtype,
                                                   rootdir=col_values_rootdir, mode='w')
@@ -1305,7 +1305,7 @@ class ctable(object):
                     col_values_carray = carray_ext.carray(rootdir=col_values_rootdir, mode='r')
 
             if not cached:
-                col_factor_carray, values = carray_ext.factorize_str(self[col])
+                col_factor_carray, values = carray_ext.factorize(self[col])
                 col_values_carray = carray_ext.carray(values.values(), dtype=self[col].dtype)
 
             factor_list.append(col_factor_carray)
@@ -1322,11 +1322,14 @@ class ctable(object):
                 # single column groupby
                 factor_carray = factor_list[0]
                 value_carray = values_list[0]
+                # the groupby output column here is 1:1 to the values
                 value_col_list = [values_list[0]]
+
             else:
                 # multi column groupby
                 # nb: this can also be cached
 
+                # first combine the factorized columns to single values
                 factor_set = {x: y for x, y in zip(groupby_cols, factor_list)}
                 eval_str = ''
                 previous_value = 1
@@ -1336,15 +1339,29 @@ class ctable(object):
                     eval_str += str(previous_value) + '*' + col
                     previous_value *= len(values)
 
-                # TODO: we cannot evaluate atm over unsigned integers; see also https://github.com/pydata/pandas/pull/8547 <- should keep unsigned so np.eval should be extended to handle uint64 ideally!
+                # TODO: we cannot numexpr eval atm over unsigned integers; see also https://github.com/pydata/pandas/pull/8547 <- should keep unsigned so np.eval should be extended to handle uint64 ideally!
                 # NotImplementedError: variable ``a2`` refers to a 64-bit unsigned integer object, that is not yet supported in numexpr expressions; rather, use the 'python' vm.
                 factor_input = bcolz.eval(eval_str, user_dict=factor_set, vm='python')
-                factor_carray, values = carray_ext.factorize_int64(factor_input)
+
+                # now factorize the unique groupby combinations
+                factor_carray, values = carray_ext.factorize(factor_input)
                 value_carray = carray_ext.carray(values.values(), dtype=factor_input.dtype)
 
-                value_col_list = [values_list[0]]
+                # the groupby output columns here to be translated from the value_carray back into ordered carrays
+                pass  # to be made
 
-            result, counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
+            # sort the index
+            sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
+
+            # create the aggregated values corresponding to the result index
+            pass  # to be made
+
+            # return the result
+            pass
+
+            # temporary debug
+            return sorted_index, value_counts
+
 
 # Local Variables:
 # mode: python
