@@ -2623,9 +2623,10 @@ cdef class carray:
         fullrepr = header + str(self)
         return fullrepr
 
+# method_1 stands for counting while doing group_indexer
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _factorize_helper(Py_ssize_t iter_range,
+cdef void _factorize_helper_method_1(Py_ssize_t iter_range,
                        Py_ssize_t allocation_size,
                        ndarray in_buffer,
                        ndarray[npy_uint64] out_buffer,
@@ -2662,7 +2663,7 @@ cdef void _factorize_helper(Py_ssize_t iter_range,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def factorize_cython(carray carray_, carray labels=None):
+def factorize_cython_method_1(carray carray_, carray labels=None):
     cdef:
         chunk chunk_
         Py_ssize_t n, i, count, chunklen, leftover_elements
@@ -2689,7 +2690,7 @@ def factorize_cython(carray carray_, carray labels=None):
         chunk_ = carray_.chunks[i]
         # decompress into in_buffer
         chunk_._getitem(0, chunklen, in_buffer.data)
-        _factorize_helper(chunklen,
+        _factorize_helper_method_1(chunklen,
                         carray_.dtype.itemsize + 1,
                         in_buffer,
                         out_buffer,
@@ -2702,7 +2703,7 @@ def factorize_cython(carray carray_, carray labels=None):
 
     leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
     # TODO what if there are no leftover elements
-    _factorize_helper(leftover_elements,
+    _factorize_helper_method_1(leftover_elements,
                       carray_.dtype.itemsize + 1,
                       carray_.leftover_array,
                       out_buffer,
@@ -2720,7 +2721,7 @@ def factorize_cython(carray carray_, carray labels=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_indexer_cython(carray labels, dict reverse):
+def groupsort_indexer_method_1(carray labels, dict reverse):
     cdef:
         npy_uint64 ngroups, n, i, label_, label, labels_chunklen, element
         ndarray[npy_uint64] where, result, counts
@@ -2772,10 +2773,10 @@ def groupsort_indexer_cython(carray labels, dict reverse):
 
 # ---------------------------------------------------------------------------
 
-# Starts section: factorize with counting and group_sorting without it
+# method_2 stands for counting while factorizing
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _factorize_helper_with_counts(Py_ssize_t iter_range,
+cdef void _factorize_helper_method_2(Py_ssize_t iter_range,
                        Py_ssize_t allocation_size,
                        ndarray in_buffer,
                        ndarray[npy_uint64] out_buffer,
@@ -2816,7 +2817,7 @@ cdef void _factorize_helper_with_counts(Py_ssize_t iter_range,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def factorize_with_counts_cython(carray carray_, carray labels=None):
+def factorize_cython_method_2(carray carray_, carray labels=None):
     cdef:
         chunk chunk_
         Py_ssize_t n, i, count, chunklen, leftover_elements
@@ -2846,7 +2847,7 @@ def factorize_with_counts_cython(carray carray_, carray labels=None):
         chunk_ = carray_.chunks[i]
         # decompress into in_buffer
         chunk_._getitem(0, chunklen, in_buffer.data)
-        _factorize_helper_with_counts(chunklen,
+        _factorize_helper_method_2(chunklen,
                                       carray_.dtype.itemsize + 1,
                                       in_buffer,
                                       out_buffer,
@@ -2860,7 +2861,7 @@ def factorize_with_counts_cython(carray carray_, carray labels=None):
 
     leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
     # TODO what if there are no leftover elements
-    _factorize_helper_with_counts(leftover_elements,
+    _factorize_helper_method_2(leftover_elements,
                                   carray_.dtype.itemsize + 1,
                                   carray_.leftover_array,
                                   out_buffer,
@@ -2879,7 +2880,7 @@ def factorize_with_counts_cython(carray carray_, carray labels=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_indexer_without_counts_cython(carray labels, dict reverse,
+def groupsort_indexer_method_2(carray labels, dict reverse,
                                             list counts
                                             ):
     cdef:
