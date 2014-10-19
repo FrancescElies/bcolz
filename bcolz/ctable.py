@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 import numpy as np
 import bcolz
-from bcolz import utils, attrs, array2string
+from bcolz import utils, attrs, array2string, carray_ext
 import itertools
 from collections import namedtuple
 import json
@@ -1254,6 +1254,77 @@ class ctable(object):
         fullrepr = header + str(self)
         return fullrepr
 
+    def cache_factor(self, col_list, refresh=False):
+        """
+        Existing issues here are: these should be hidden helper carrays
+        As in: not normal columns that you would normally see as a user
+        The factor (label index) carray is as long as the original carray (and the rest of the table therefore)
+        But the (unique) values carray is not as long (as long as the nr of unique values)
+        Also: the factor carrays have to be available for a ctable .eval
+
+        :param col_list:
+        :param refresh:
+        :return:
+        """
+
+        if not self.rootdir:
+            raise TypeError('Only out-of-core ctables can have factorization caching at the moment')
+
+        for col in col_list:
+
+            col_rootdir = self[col].rootdir
+            col_factor_rootdir = col_rootdir + '.factor'
+            col_values_rootdir = col_rootdir + '.values'
+
+            # create cache if needed
+            if refresh or not os.path.exists(col_factor_rootdir):
+                carray_factor = carray_ext.carray([], dtype='uint64', expectedlen=self.size,
+                                                    rootdir=col_factor_rootdir, mode='w')
+                _, values = carray_ext.factorize_str(self[col], labels=carray_factor)
+                carray_factor.flush()
+                carray_values = carray_ext.carray(values.values(), dtype=self[col].dtype,
+                                                  rootdir=col_values_rootdir, mode='w')
+                carray_values.flush()
+
+    def groupby(self, groupby_cols, agg_set):
+        # first check if the factorized arrays already exist unless we need to refresh the cache
+
+        factor_list = []
+        values_list = []
+
+        for col in groupby_cols:
+
+            cached = False
+            col_rootdir = self[col].rootdir
+            if col_rootdir:
+                col_factor_rootdir = col_rootdir + '.factor'
+                col_values_rootdir = col_rootdir + '.values'
+                if os.path.exists(col_factor_rootdir):
+                    cached = True
+                    col_factor_carray = carray_ext.carray(rootdir=col_factor_rootdir, mode='r')
+                    col_values_carray = carray_ext.carray(rootdir=col_values_rootdir, mode='r')
+
+            if not cached:
+                col_factor_carray, values = carray_ext.factorize_str(self[col])
+                col_values_carray = carray_ext.carray(values.values(), dtype=self[col].dtype)
+
+            factor_list.append(col_factor_carray)
+            values_list.append(col_values_carray)
+
+        if len(groupby_cols) == 0:
+            # no columns to groupby over, so just aggregate the measure columns to 1 total
+            # needs to be added
+            pass
+
+        elif len(groupby_cols) == 1:
+            # single column groupby
+            factor_carray = factor_list[0]
+            value_carray = values_list[0]
+            carray_ext.groupsort_factor_carray(factor_carray, value_carray)
+
+        else:
+            # multi column groupby
+            pass
 
 # Local Variables:
 # mode: python
