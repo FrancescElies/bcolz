@@ -1278,7 +1278,7 @@ class ctable(object):
 
             # create cache if needed
             if refresh or not os.path.exists(col_factor_rootdir):
-                carray_factor = carray_ext.carray([], dtype='uint64', expectedlen=self.size,
+                carray_factor = carray_ext.carray([], dtype='int64', expectedlen=self.size,
                                                     rootdir=col_factor_rootdir, mode='w')
                 _, values = carray_ext.factorize_str(self[col], labels=carray_factor)
                 carray_factor.flush()
@@ -1316,15 +1316,33 @@ class ctable(object):
             # needs to be added
             pass
 
-        elif len(groupby_cols) == 1:
-            # single column groupby
-            factor_carray = factor_list[0]
-            value_carray = values_list[0]
-            carray_ext.groupsort_factor_carray(factor_carray, value_carray)
-
         else:
-            # multi column groupby
-            pass
+
+            if len(groupby_cols) == 1:
+                # single column groupby
+                factor_carray = factor_list[0]
+                value_carray = values_list[0]
+                value_col_list = [values_list[0]]
+            else:
+                # multi column groupby
+                # nb: this can also be cached
+
+                factor_set = {x: y for x, y in zip(groupby_cols, factor_list)}
+                eval_str = ''
+                previous_value = 1
+                for col, values in zip(reversed(groupby_cols), reversed(values_list)):
+                    if eval_str:
+                        eval_str += ' + '
+                    eval_str += str(previous_value) + '*' + col
+                    previous_value *= len(values)
+
+                factor_input = bcolz.eval(eval_str, user_dict=factor_set)
+                factor_carray, values = carray_ext.factorize_int64(factor_input)
+                value_carray = carray_ext.carray(values.values(), dtype=factor_input.dtype)
+
+                value_col_list = [values_list[0]]
+
+            result, counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
 
 # Local Variables:
 # mode: python
