@@ -2673,7 +2673,6 @@ def factorize_str(carray carray_, carray labels=None):
         ndarray[npy_uint64] out_buffer
         kh_str_t *table
 
-    #TODO: check that the input is a string_ dtype type
     count = 0
     ret = 0
     reverse = {}
@@ -2739,7 +2738,6 @@ cdef void _factorize_int64_helper(Py_ssize_t iter_range,
     ret = 0
 
     for i in range(iter_range):
-        # TODO: Consider indexing directly into the array for efficiency
         element = in_buffer[i]
         k = kh_get_int64(table, element)
         if k != table.n_buckets:
@@ -2812,6 +2810,7 @@ def factorize(carray carray_, carray labels=None):
     if carray_.dtype == 'int64':
         labels, reverse = factorize_int64(carray_, labels=labels)
     else:
+        #TODO: check that the input is a string_ dtype type
         labels, reverse = factorize_str(carray_, labels=labels)
     return labels, reverse
 
