@@ -62,7 +62,7 @@ IntType = np.dtype(np.int_)
 # numpy functions & objects
 from definitions cimport import_array, ndarray, dtype, \
     malloc, realloc, free, memcpy, memset, strdup, strcmp, \
-    npy_int64, npy_uint64, \
+    npy_uint64, \
     PyString_AsString, PyString_GET_SIZE, \
     PyString_FromStringAndSize, \
     Py_BEGIN_ALLOW_THREADS, Py_END_ALLOW_THREADS, \
@@ -2630,7 +2630,7 @@ cdef class carray:
 cdef void _factorize_str_helper(Py_ssize_t iter_range,
                        Py_ssize_t allocation_size,
                        ndarray in_buffer,
-                       ndarray[npy_int64] out_buffer,
+                       ndarray[npy_uint64] out_buffer,
                        kh_str_t *table,
                        Py_ssize_t * count,
                        dict reverse,
@@ -2670,7 +2670,7 @@ def factorize_str(carray carray_, carray labels=None):
         Py_ssize_t n, i, count, chunklen, leftover_elements
         dict reverse
         ndarray in_buffer
-        ndarray[npy_int64] out_buffer
+        ndarray[npy_uint64] out_buffer
         kh_str_t *table
 
     #TODO: check that the input is a string_ dtype type
@@ -2681,9 +2681,9 @@ def factorize_str(carray carray_, carray labels=None):
     n = len(carray_)
     chunklen = carray_.chunklen
     if labels is None:
-        labels = carray([], dtype='int64', expectedlen=n)
+        labels = carray([], dtype='uint64', expectedlen=n)
     # in-buffer isn't typed, because cython doesn't support string arrays (?)
-    out_buffer = np.empty(chunklen, dtype='int64')
+    out_buffer = np.empty(chunklen, dtype='uint64')
     in_buffer = np.empty(chunklen, dtype=carray_.dtype)
     table = kh_init_str()
 
@@ -2722,10 +2722,10 @@ def factorize_str(carray carray_, carray labels=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_factor_carray(carray labels, npy_int64 ngroups):
+def groupsort_factor_carray(carray labels, npy_uint64 ngroups):
     cdef:
-        npy_int64 n, i, label_, label, labels_chunklen, element
-        ndarray[npy_int64] where, result, counts
+        npy_uint64 n, i, label_, label, labels_chunklen, element
+        ndarray[npy_uint64] where, result, counts
         chunk chunk_
         ndarray in_buffer
 
@@ -2736,30 +2736,30 @@ def groupsort_factor_carray(carray labels, npy_int64 ngroups):
 
     # count group sizes, location 0 for NA
     # todo: non-sequential writing to a carray gives performance issues, numpy array for now
-    # counts = bcolz.zeros(ngroups + 1, dtype='int64')
-    counts = np.zeros(ngroups + 1, dtype='int64')
+    # counts = bcolz.zeros(ngroups + 1, dtype='uint64')
+    counts = np.zeros(ngroups + 1, dtype='uint64')
 
     for i in range(labels.nchunks):
         chunk_ = labels.chunks[i]
         # decompress into in_buffer
         chunk_._getitem(0, labels_chunklen, in_buffer.data)
         for i in range(labels_chunklen):
-            counts[<npy_int64>in_buffer[i] + 1] += 1
+            counts[<npy_uint64>in_buffer[i] + 1] += 1
 
     leftover_elements = cython.cdiv(labels.leftover, labels.atomsize)
     for i in range(leftover_elements):
-            counts[<npy_int64>labels.leftover_array[i] + 1] += 1
+            counts[<npy_uint64>labels.leftover_array[i] + 1] += 1
 
     # mark the start of each contiguous group of like-indexed data
     # where = bcolz.zeros(ngroups + 1, dtype='uint64')
-    where = np.zeros(<npy_int64> (ngroups + 1), dtype='int64')
+    where = np.zeros(<npy_uint64> (ngroups + 1), dtype='uint64')
     for i in range(1, ngroups + 1):
         where[i] = where[i - 1] + counts[i - 1]
 
     # this is our indexer
     # todo: non-sequential writing to a carray gives performance issues, numpy array for now
     # result = bcolz.zeros(n, dtype='uint64')
-    result = np.zeros(n, dtype='int64')
+    result = np.zeros(n, dtype='uint64')
     i = 0
     for label_ in labels.iter():
         label = label_ + 1

@@ -1336,7 +1336,9 @@ class ctable(object):
                     eval_str += str(previous_value) + '*' + col
                     previous_value *= len(values)
 
-                factor_input = bcolz.eval(eval_str, user_dict=factor_set)
+                # TODO: we cannot evaluate atm over unsigned integers; see also https://github.com/pydata/pandas/pull/8547 <- should keep unsigned so np.eval should be extended to handle uint64 ideally!
+                # NotImplementedError: variable ``a2`` refers to a 64-bit unsigned integer object, that is not yet supported in numexpr expressions; rather, use the 'python' vm.
+                factor_input = bcolz.eval(eval_str, user_dict=factor_set, vm='python')
                 factor_carray, values = carray_ext.factorize_int64(factor_input)
                 value_carray = carray_ext.carray(values.values(), dtype=factor_input.dtype)
 
