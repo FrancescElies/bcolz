@@ -1286,6 +1286,34 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
+    def _agg_value_counts_in_sorted_index(self, sorted_index, value_counts,
+                                         groupby_cols=None):
+        assert groupby_cols is not None
+
+        ct_agg = bcolz.ctable(
+            np.empty(0, self.dtype), expectedlen=len(value_counts-1))
+
+        start_cum = 0
+        end_cum = 0
+        for actual_count in value_counts:
+            start = end_cum
+            end_cum += int(actual_count)
+            if start == end_cum:
+                continue
+
+            tmp = np.empty(1, self.dtype)
+            for (n, col) in enumerate(self.names):
+                if col in groupby_cols:
+                    tmp[0][n] = self[col][sorted_index[start]]
+                    continue
+                else:
+                    # at the moment only sum aggregations implemented
+                    tmp[0][n] = 0
+                    for index in xrange(start, end_cum):
+                        tmp[0][n] += self[col][sorted_index[index]]
+            ct_agg.append(tmp)
+        return ct_agg
+
     def groupby(self, groupby_cols, agg_set):
         # first check if the factorized arrays already exist unless we need to refresh the cache
 
@@ -1353,25 +1381,9 @@ class ctable(object):
             # sort the index
             sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
             # create the aggregated values corresponding to the result index
-            ct_agg = bcolz.ctable(np.empty(0, self.dtype), expectedlen=len(value_counts-1))
+            return self._agg_value_counts_in_sorted_index(
+                sorted_index, value_counts, groupby_cols=groupby_cols)
 
-            start_cum = 0
-            end_cum = 0
-            for actual_count in value_counts:
-                start = end_cum
-                end_cum += int(actual_count)
-
-                tmp = np.empty(1, self.dtype)
-                for (n, col) in enumerate(self.names):
-                    if col in groupby_cols:
-                        tmp[0][n] = self[col][sorted_index[start]]
-                        continue
-                    else:
-                        tmp[0][n] = 0
-                        for index in xrange(start, end_cum):
-                            tmp[0][n] += self[col][sorted_index[index]]
-                            print tmp[0][n]
-                ct_agg.append(tmp)
 
 
 
