@@ -1291,7 +1291,7 @@ class ctable(object):
         assert groupby_cols is not None
 
         ct_agg = bcolz.ctable(
-            np.empty(0, self.dtype), expectedlen=len(value_counts-1))
+            np.empty(0, self.dtype), expectedlen=len(value_counts)-1)
 
         start_cum = 0
         end_cum = 0
@@ -1304,13 +1304,13 @@ class ctable(object):
             tmp = np.empty(1, self.dtype)
             for (n, col) in enumerate(self.names):
                 if col in groupby_cols:
-                    tmp[0][n] = self[col][sorted_index[start]]
+                    tmp[0][n] = self[col][int(sorted_index[start])]
                     continue
                 else:
                     # at the moment only sum aggregations implemented
                     tmp[0][n] = 0
                     for index in xrange(start, end_cum):
-                        tmp[0][n] += self[col][sorted_index[index]]
+                        tmp[0][n] += self[col][int(sorted_index[index])]
             ct_agg.append(tmp)
         return ct_agg
 
