@@ -1352,15 +1352,15 @@ class ctable(object):
 
             # sort the index
             sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
-
             # create the aggregated values corresponding to the result index
-            pass  # to be made
+            start_cum = 0
+            end_cum = 0
+            for actual_count in value_counts:
+                start = end_cum
+                end_cum += int(actual_count)
+                for index in xrange(start, end_cum):
+                    yield self[sorted_index[index]]
 
-            # return the result
-            pass
-
-            # temporary debug
-            return sorted_index, value_counts
 
 
 # Local Variables:
