@@ -1287,14 +1287,15 @@ class ctable(object):
                 carray_values.flush()
 
     def _agg_value_counts_in_sorted_index(self, sorted_index, value_counts,
-                                         groupby_cols=None):
+                                         groupby_cols=None,
+                                         factor_carray=None,
+                                         ):
         assert groupby_cols is not None
 
         ct_agg = bcolz.ctable(
             np.empty(len(value_counts)-1, self.dtype),
             expectedlen=len(value_counts)-1)
 
-        start_cum = 0
         end_cum = 0
         for (k, actual_count) in enumerate(value_counts[1:]):
             start = end_cum
@@ -1307,9 +1308,8 @@ class ctable(object):
                     continue
                 else:
                     # at the moment only sum aggregations implemented
-                    # TODO: slicing consumes more than 90% of ex. time
-                    tmp[0][n] = \
-                        self[col][sorted_index[start:end_cum].tolist()].sum()
+                    b = bcolz.eval('factor_carray == k', vm='python')
+                    tmp[0][n] = sum([v for v in self[col].where(b)])
 
             ct_agg[k] = tmp
 
@@ -1382,8 +1382,11 @@ class ctable(object):
             # sort the index
             sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
             # create the aggregated values corresponding to the result index
-            return self._agg_value_counts_in_sorted_index(
-                sorted_index, value_counts, groupby_cols=groupby_cols)
+            return \
+                self._agg_value_counts_in_sorted_index(
+                    sorted_index, value_counts,
+                    groupby_cols=groupby_cols,
+                    factor_carray=factor_carray)
 
 
 
