@@ -1286,10 +1286,12 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
-    def _agg_value_counts_in_sorted_index(self, sorted_index, value_counts,
-                                         groupby_cols=None,
-                                         factor_carray=None,
-                                         ):
+    def _agg_value_counts_in_sorted_index(self,
+                                          sorted_index,
+                                          value_counts,
+                                          groupby_cols=None,
+                                          factor_carray=None,
+                                          ):
         assert groupby_cols is not None
 
         ct_agg = bcolz.ctable(
@@ -1309,7 +1311,10 @@ class ctable(object):
                 else:
                     # at the moment only sum aggregations implemented
                     b = bcolz.eval('factor_carray == k', vm='python')
-                    tmp[0][n] = sum([v for v in self[col].where(b)])
+                    v_cum = 0
+                    for v in self[col].where(b):
+                        v_cum += v
+                    tmp[0][n] = v_cum
 
             ct_agg[k] = tmp
 
