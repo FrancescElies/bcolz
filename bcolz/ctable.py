@@ -1306,9 +1306,7 @@ class ctable(object):
                     continue
                 else:
                     # at the moment only sum aggregations implemented
-                    tmp[0][n] = 0
-                    for index in xrange(start, end_cum):
-                        tmp[0][n] += self[col][int(sorted_index[index])]
+                    tmp[0][n] = self[col][list(sorted_index[start:end_cum])].sum()
             ct_agg.append(tmp)
         return ct_agg
 
