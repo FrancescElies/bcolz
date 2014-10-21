@@ -1307,6 +1307,7 @@ class ctable(object):
                     continue
                 else:
                     # at the moment only sum aggregations implemented
+                    # TODO: slicing consumes more than 90% of ex. time
                     tmp[0][n] = \
                         self[col][sorted_index[start:end_cum].tolist()].sum()
 
