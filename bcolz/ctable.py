@@ -1295,11 +1295,9 @@ class ctable(object):
 
         start_cum = 0
         end_cum = 0
-        for actual_count in value_counts:
+        for actual_count in value_counts[1:]:
             start = end_cum
             end_cum += int(actual_count)
-            if start == end_cum:
-                continue
 
             tmp = np.empty(1, self.dtype)
             for (n, col) in enumerate(self.names):
