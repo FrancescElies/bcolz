@@ -1303,6 +1303,7 @@ class ctable(object):
             start = end_cum
             end_cum += int(actual_count)
             tmp = np.empty(1, self.dtype)
+            bool_arr = bcolz.eval('factor_carray == k', vm='python')
 
             for (n, col) in enumerate(self.names):
                 if col in groupby_cols:
@@ -1310,9 +1311,8 @@ class ctable(object):
                     continue
                 else:
                     # at the moment only sum aggregations implemented
-                    b = bcolz.eval('factor_carray == k', vm='python')
                     v_cum = 0
-                    for v in self[col].where(b):
+                    for v in self[col].where(bool_arr):
                         v_cum += v
                     tmp[0][n] = v_cum
 
