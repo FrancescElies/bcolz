@@ -2871,36 +2871,33 @@ import cython
 @cython.wraparound(False)
 def _group_bool_array(ndarray[npy_uint64] sorted_index,
                       ndarray[npy_uint64] value_counts,
-                      npy_uint64 current_index
+                      npy_uint64 group_id
                       ):
     cdef:
         npy_uint64 j, i, len_factor_carray, index_counter, max_index_counter
-        list bool_carray
+        carray bool_carray
     #
     len_factor_carray = len(sorted_index)
     index_counter = 0
-    max_index_counter = value_counts[current_index + 1]
-    bool_carray = []
+    max_index_counter = value_counts[group_id + 1]
+    bool_carray = bcolz.zeros(len_factor_carray, dtype='bool')
     #
     j = 0
     i = 0
-    start = sum(value_counts[:current_index + 1])
+    start = sum(value_counts[:group_id + 1])
     end = start + max_index_counter
-    for i in range(start, end):
+    current_index = sorted_index[start]
+    for i in range(len_factor_carray):
         if sorted_index[i] != current_index:
-            bool_carray.append(0)
-            print 0
+            pass
         else:
-            print 1
-            bool_carray.append(1)
+            bool_carray[i] = 1
+            index_counter += 1
             if index_counter == max_index_counter:
                 break
-            index_counter += 1
+            j += 1
+            current_index = sorted_index[j]
     #
-    # fill up end
-    current_length = len(bool_carray)
-    for i in np.arange(len_factor_carray - current_length):
-        bool_carray.append(0)
     #
     return bool_carray
 # _group_bool_array(sorted_index, k)
