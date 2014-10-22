@@ -2876,28 +2876,24 @@ def _group_bool_array(ndarray[npy_uint64] sorted_index,
     cdef:
         npy_uint64 j, i, len_factor_carray, index_counter, max_index_counter
         carray bool_carray
-    #
+
     len_factor_carray = len(sorted_index)
     index_counter = 0
     max_index_counter = value_counts[group_id + 1]
     bool_carray = bcolz.zeros(len_factor_carray, dtype='bool')
-    #
+
     i = 0
     start = sum(value_counts[:group_id + 1])
-    end = start + max_index_counter
     current_index = sorted_index[start]
     for i in range(len_factor_carray):
-        if sorted_index[i] != current_index:
-            pass
-        else:
+        if i == current_index:
             bool_carray[i] = 1
             index_counter += 1
             if index_counter == max_index_counter:
                 break
             j += 1
             current_index = sorted_index[j]
-    #
-    #
+
     return bool_carray
 # _group_bool_array(sorted_index, k)
 
