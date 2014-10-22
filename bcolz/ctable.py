@@ -1290,17 +1290,31 @@ class ctable(object):
                            groupby_cols=None, factor_carray=None):
         assert groupby_cols is not None
 
-        len_value_counts = len(value_counts)
-        len_value_counts_minus_1 = len_value_counts - 1
+        len_sorted_index = len(sorted_index)
+        len_value_counts = len(value_counts) - 1
         ct_agg = bcolz.ctable(
-            np.empty(len_value_counts_minus_1, self.dtype),
-            expectedlen=len_value_counts_minus_1)
+            np.empty(len_value_counts, self.dtype),
+            expectedlen=len_value_counts)
 
-        for k in range(len_value_counts_minus_1):
+        print sorted_index, value_counts
+
+        current_start = 0
+
+        for k in range(len_value_counts):
             tmp = np.empty(1, self.dtype)
             # bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
-            bool_arr = \
-                carray_ext._group_bool_array(sorted_index, value_counts, k)
+
+            current_length = int(value_counts[k + 1])
+            current_end = current_start + current_length
+            sub_index = sorted_index[current_start:current_end]
+
+            print k, current_start, current_end, sub_index
+
+            bool_arr = carray_ext._group_bool_array(sub_index, len_sorted_index)
+
+            current_start += current_length
+
+            print bool_arr
 
             for (n, col) in enumerate(self.names):
                 if col in groupby_cols:

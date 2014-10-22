@@ -2869,30 +2869,35 @@ import numpy as np
 import cython
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _group_bool_array(ndarray[npy_uint64] sorted_index,
-                      ndarray[npy_uint64] value_counts,
-                      npy_uint64 group_id
+def _group_bool_array(ndarray[npy_uint64] index_array,
+                      npy_uint64 len_factor_carray
                       ):
     cdef:
-        npy_uint64 j, i, len_factor_carray, index_counter, max_index_counter
+        npy_uint64 j, i, index_counter, max_index_counter, current_index
         carray bool_carray
 
-    len_factor_carray = len(sorted_index)
-    index_counter = 0
-    max_index_counter = value_counts[group_id + 1]
-    bool_carray = bcolz.zeros(len_factor_carray, dtype='bool')
+    last_index = index_array[-1]
+    bool_carray = carray([], dtype='bool', expectedlen=len_factor_carray)
+        # bcolz.zeros(0, dtype='bool', expected_len=len_factor_carray)
 
     i = 0
-    start = sum(value_counts[:group_id + 1])
-    current_index = sorted_index[start]
+    index_counter = 0
+    max_index_counter = len(index_array) - 1
+    current_index = index_array[index_counter]
     for i in range(len_factor_carray):
         if i == current_index:
-            bool_carray[i] = 1
-            index_counter += 1
+            bool_carray.append(1)
             if index_counter == max_index_counter:
                 break
-            j += 1
-            current_index = sorted_index[j]
+            index_counter += 1
+            current_index = index_array[index_counter]
+        else:
+            bool_carray.append(0)
+
+    # fill up the rest of the array quickly
+    diff = len_factor_carray - i -1
+    for i in range(diff):
+        bool_carray.append(0)
 
     return bool_carray
 # _group_bool_array(sorted_index, k)
