@@ -62,7 +62,7 @@ IntType = np.dtype(np.int_)
 # numpy functions & objects
 from definitions cimport import_array, ndarray, dtype, \
     malloc, realloc, free, memcpy, memset, strdup, strcmp, \
-    npy_uint64, npy_int64, \
+    npy_uint8, npy_uint64, npy_int64, \
     PyString_AsString, PyString_GET_SIZE, \
     PyString_FromStringAndSize, \
     Py_BEGIN_ALLOW_THREADS, Py_END_ALLOW_THREADS, \
@@ -2865,15 +2865,22 @@ def groupsort_factor_carray(carray labels, npy_uint64 ngroups):
         i += 1
     return result, counts
 
-def _group_bool_array(factor_carray, counts_current_index, current_index):
+def _group_bool_array(carray factor_carray,
+                      npy_uint64 counts_current_index,
+                      npy_uint64 current_index):
+
+    cdef:
+        npy_uint64 len_factor_carray, index_counter, max_index_counter, i, j
+        ndarray[npy_uint8, cast=True] bool_carray
+
     len_factor_carray = len(factor_carray)
     index_counter = 0
     max_index_counter = counts_current_index
-    bool_carray = np.zeros(len(factor_carray), dtype='uint64')
+    bool_carray = np.zeros(len(factor_carray), dtype='bool')
 
     j = 0
     i = 0
-    for i in np.arange(len_factor_carray):
+    for i in range(len_factor_carray):
         if factor_carray[i] == current_index:
             bool_carray[i] = 1
             if index_counter == max_index_counter:
