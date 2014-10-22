@@ -1286,12 +1286,8 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
-    def _agg_value_counts_in_sorted_index(self,
-                                          sorted_index,
-                                          value_counts,
-                                          groupby_cols=None,
-                                          factor_carray=None,
-                                          ):
+    def _aggregated_counts(self, sorted_index, value_counts,
+                           groupby_cols=None, factor_carray=None):
         assert groupby_cols is not None
 
         ct_agg = bcolz.ctable(
@@ -1389,7 +1385,7 @@ class ctable(object):
             sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
             # create the aggregated values corresponding to the result index
             return \
-                self._agg_value_counts_in_sorted_index(
+                self._aggregated_counts(
                     sorted_index, value_counts,
                     groupby_cols=groupby_cols,
                     factor_carray=factor_carray)
