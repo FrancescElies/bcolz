@@ -1300,7 +1300,7 @@ class ctable(object):
             tmp = np.empty(1, self.dtype)
             # bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
             bool_arr = \
-                carray_ext._group_bool_array(factor_carray, value_counts[k+1], k)
+                carray_ext._group_bool_array(sorted_index, value_counts, k)
 
             for (n, col) in enumerate(self.names):
                 if col in groupby_cols:

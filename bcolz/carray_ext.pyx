@@ -2865,28 +2865,43 @@ def groupsort_factor_carray(carray labels, npy_uint64 ngroups):
         i += 1
     return result, counts
 
-def _group_bool_array(carray factor_carray,
-                      npy_uint64 counts_current_index,
-                      npy_uint64 current_index):
-
+import numpy as np
+import cython
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _group_bool_array(ndarray[npy_uint64] sorted_index,
+                      ndarray[npy_uint64] value_counts,
+                      npy_uint64 current_index
+                      ):
     cdef:
-        npy_uint64 len_factor_carray, index_counter, max_index_counter, i, j
-        ndarray[npy_uint8, cast=True] bool_carray
-
-    len_factor_carray = len(factor_carray)
+        npy_uint64 j, i, len_factor_carray, index_counter, max_index_counter
+        list bool_carray
+    #
+    len_factor_carray = len(sorted_index)
     index_counter = 0
-    max_index_counter = counts_current_index
-    bool_carray = np.zeros(len(factor_carray), dtype='bool')
-
+    max_index_counter = value_counts[current_index + 1]
+    bool_carray = []
+    #
     j = 0
     i = 0
-    for i in range(len_factor_carray):
-        if factor_carray[i] == current_index:
-            bool_carray[i] = 1
-            index_counter += 1
+    start = sum(value_counts[:current_index + 1])
+    end = start + max_index_counter
+    for i in range(start, end):
+        if sorted_index[i] != current_index:
+            bool_carray.append(0)
+            print 0
+        else:
+            print 1
+            bool_carray.append(1)
             if index_counter == max_index_counter:
                 break
-
+            index_counter += 1
+    #
+    # fill up end
+    current_length = len(bool_carray)
+    for i in np.arange(len_factor_carray - current_length):
+        bool_carray.append(0)
+    #
     return bool_carray
 # _group_bool_array(sorted_index, k)
 
