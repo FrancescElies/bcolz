@@ -2883,9 +2883,9 @@ def _group_bool_array(carray factor_carray,
     for i in range(len_factor_carray):
         if factor_carray[i] == current_index:
             bool_carray[i] = 1
+            index_counter += 1
             if index_counter == max_index_counter:
                 break
-            index_counter += 1
 
     return bool_carray
 # _group_bool_array(sorted_index, k)
