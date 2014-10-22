@@ -1295,9 +1295,9 @@ class ctable(object):
             np.empty(len_value_counts_minus_1, self.dtype),
             expectedlen=len_value_counts_minus_1)
 
-        for k in xrange(len_value_counts_minus_1):
+        for k in range(len_value_counts_minus_1):
             tmp = np.empty(1, self.dtype)
-            bool_arr = bcolz.eval('factor_carray == k', vm='python')
+            bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
 
             for (n, col) in enumerate(self.names):
                 if col in groupby_cols:
