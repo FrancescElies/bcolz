@@ -1296,8 +1296,6 @@ class ctable(object):
             np.empty(len_value_counts, self.dtype),
             expectedlen=len_value_counts)
 
-        print sorted_index, value_counts
-
         current_start = 0
 
         for k in range(len_value_counts):
@@ -1308,13 +1306,9 @@ class ctable(object):
             current_end = current_start + current_length
             sub_index = sorted_index[current_start:current_end]
 
-            print k, current_start, current_end, sub_index
-
             bool_arr = carray_ext._group_bool_array(sub_index, len_sorted_index)
 
             current_start += current_length
-
-            print bool_arr
 
             for (n, col) in enumerate(self.names):
                 if col in groupby_cols:
