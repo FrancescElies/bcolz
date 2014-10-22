@@ -1313,7 +1313,8 @@ class ctable(object):
                     # at the moment only sum aggregations implemented
                     v_cum = 0
                     for v in self[col].where(bool_arr):
-                        v_cum += v
+                        if v == v:  # leave out NA values
+                            v_cum += v
                     tmp[0][n] = v_cum
 
             ct_agg[k] = tmp
