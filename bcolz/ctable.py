@@ -1286,10 +1286,11 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
-    def _aggregated_counts(self, sorted_index, len_value_counts,
+    def _aggregated_counts(self, sorted_index, value_counts,
                            groupby_cols=None, factor_carray=None):
         assert groupby_cols is not None
 
+        len_value_counts = len(value_counts)
         len_value_counts_minus_1 = len_value_counts - 1
         ct_agg = bcolz.ctable(
             np.empty(len_value_counts_minus_1, self.dtype),
@@ -1297,7 +1298,9 @@ class ctable(object):
 
         for k in range(len_value_counts_minus_1):
             tmp = np.empty(1, self.dtype)
-            bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
+            # bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
+            bool_arr = \
+                carray_ext._group_bool_array(factor_carray, value_counts[k+1], k)
 
             for (n, col) in enumerate(self.names):
                 if col in groupby_cols:
@@ -1384,7 +1387,7 @@ class ctable(object):
             # create the aggregated values corresponding to the result index
             return \
                 self._aggregated_counts(
-                    sorted_index, len(value_counts),
+                    sorted_index, value_counts,
                     groupby_cols=groupby_cols,
                     factor_carray=factor_carray)
 
