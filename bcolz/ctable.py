@@ -1301,17 +1301,17 @@ class ctable(object):
         for k in range(len_value_counts):
             tmp = np.empty(1, self.dtype)
             # option (1)
-            # bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
+            bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
             # end of (1)
 
             # option (2)
-            current_length = int(value_counts[k + 1])
-            current_end = current_start + current_length
-            sub_index = sorted_index[current_start:current_end]
-
-            bool_arr = carray_ext._group_bool_array(sub_index, len_sorted_index)
-
-            current_start += current_length
+            # current_length = int(value_counts[k + 1])
+            # current_end = current_start + current_length
+            # sub_index = sorted_index[current_start:current_end]
+            #
+            # bool_arr = carray_ext._group_bool_array(sub_index, len_sorted_index)
+            #
+            # current_start += current_length
             # end of (2)
 
             for (n, col) in enumerate(self.names):
