@@ -1406,7 +1406,7 @@ class ctable(object):
                 pass  # to be made
 
             # sort the index, not needed if option (1) is used
-            # sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
+            sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
             # create the aggregated values corresponding to the result index
             return \
                 self._aggregated_counts(
