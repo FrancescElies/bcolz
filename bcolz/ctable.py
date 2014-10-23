@@ -1346,6 +1346,21 @@ class ctable(object):
 
         return grouped_values
 
+    def sum_grouped_values(self, grouped_values, groupby_cols):
+        agg = {}
+
+        for v_fac in grouped_values:
+            agg[v_fac] = {}
+
+        for v_fac in grouped_values:
+            for col in grouped_values[v_fac]:
+                if col in groupby_cols:
+                    agg[v_fac][col] = grouped_values[v_fac][col][0]
+                else:
+                    agg[v_fac][col] = grouped_values[v_fac][col].sum()
+
+        return agg
+
     def groupby(self, groupby_cols, agg_set):
         # first check if the factorized arrays already exist unless we need to refresh the cache
 
@@ -1413,19 +1428,19 @@ class ctable(object):
             # option(a)
             grouped_values = \
                 self.retrieve_grouped_values(values, factor_carray)
-            print grouped_values
-            exit()
+
+            return self.sum_grouped_values(grouped_values, groupby_cols)
             # end of (a)
 
             # option (b)
             # sort the index
-            sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
+            # sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
             # create the aggregated values corresponding to the result index
-            return \
-                self._aggregated_counts(
-                    sorted_index, value_counts,
-                    groupby_cols=groupby_cols,
-                    factor_carray=factor_carray)
+            # return \
+            #     self._aggregated_counts(
+            #         sorted_index, value_counts,
+            #         groupby_cols=groupby_cols,
+            #         factor_carray=factor_carray)
             # end of (b)
 
 
