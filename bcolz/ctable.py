@@ -1286,61 +1286,6 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
-    def _aggregated_counts(self, sorted_index, value_counts,
-                           groupby_cols=None, factor_carray=None):
-        assert groupby_cols is not None
-
-        len_sorted_index = len(sorted_index)
-        len_value_counts = len(value_counts) - 1
-        ct_agg = bcolz.ctable(
-            np.empty(len_value_counts, self.dtype),
-            expectedlen=len_value_counts)
-
-        current_start = 0
-
-        for k in range(len_value_counts):
-            tmp = np.empty(1, self.dtype)
-            # option (1)
-            bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
-            # end of (1)
-
-            # option (2)
-            # current_length = int(value_counts[k + 1])
-            # current_end = current_start + current_length
-            # sub_index = sorted_index[current_start:current_end]
-            #
-            # bool_arr = carray_ext._group_bool_array(sub_index, len_sorted_index)
-            #
-            # current_start += current_length
-            # end of (2)
-
-            for (n, col) in enumerate(self.names):
-                if col in groupby_cols:
-                    # only first value needed
-                    tmp[0][n] = self[col].where(bool_arr).next()
-                else:
-                    # at the moment only sum aggregations implemented
-                    #
-                    # option (x)
-                    tmp[0][n] = carray_ext.sum_cython(self[col].where(bool_arr))
-                    # end of (x)
-                    #
-                    # option (y)
-                    # v_cum = 0
-                    # for v in self[col].where(bool_arr):
-                    #     if v == v:  # leave out NA values
-                    #         v_cum += v
-                    # tmp[0][n] = v_cum
-                    # end of (y)
-                    #
-                    # option (z)
-                    # sum((x for x in self[col].where(bool_arr) if x == x))
-                    # end of (z)
-
-            ct_agg[k] = tmp
-
-        return ct_agg
-
     def groupby(self, groupby_cols, agg_set):
         # first check if the factorized arrays already exist unless we need to refresh the cache
 
@@ -1406,13 +1351,16 @@ class ctable(object):
                 pass  # to be made
 
             # sort the index, not needed if option (1) is used
+            # TODO: get rid of groupsort_factor_carray (value_counts still used in _aggregated_counts)
             sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
             # create the aggregated values corresponding to the result index
             return \
-                self._aggregated_counts(
-                    sorted_index, value_counts,
-                    groupby_cols=groupby_cols,
-                    factor_carray=factor_carray)
+                carray_ext._aggregated_counts(
+                    self,
+                    sorted_index,
+                    value_counts,
+                    factor_carray,
+                    groupby_cols)
 
 
 

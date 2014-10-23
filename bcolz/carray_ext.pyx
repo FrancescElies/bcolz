@@ -2927,6 +2927,50 @@ def sum_cython(iter_):
 
     return v_cum
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _aggregated_counts(self_ctable,
+                       ndarray[npy_uint64] sorted_index,
+                       ndarray[npy_uint64] value_counts,
+                       carray factor_carray,
+                       list groupby_cols,
+                       ):
+    cdef:
+        npy_uint64 len_value_counts, current_start, k, n
+        npy_float64 v_cum
+        char *col
+        carray bool_arr
+        ndarray tmp
+
+    len_value_counts = len(value_counts) - 1
+    ct_agg = bcolz.ctable(
+        np.empty(len_value_counts, self_ctable.dtype),
+        expectedlen=len_value_counts)
+
+    current_start = 0
+
+    for k in range(len_value_counts):
+        tmp = np.empty(1, self_ctable.dtype)
+
+        bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
+
+
+        n = 0
+        for n in range(len(self_ctable.names)):
+            col = self_ctable.names[n]
+            if col in groupby_cols:
+                # only first value needed
+                tmp[0][n] = self_ctable[col].where(bool_arr).next()
+            else:
+                tmp[0][n] = \
+                    sum_cython(self_ctable[col].where(bool_arr))
+                # end of (b)
+            n += 1
+
+        ct_agg[k] = tmp
+
+    return ct_agg
+
 ## Local Variables:
 ## mode: python
 ## tab-width: 4
