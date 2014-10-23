@@ -1320,11 +1320,22 @@ class ctable(object):
                     tmp[0][n] = self[col].where(bool_arr).next()
                 else:
                     # at the moment only sum aggregations implemented
-                    v_cum = 0
-                    for v in self[col].where(bool_arr):
-                        if v == v:  # leave out NA values
-                            v_cum += v
-                    tmp[0][n] = v_cum
+                    #
+                    # option (x)
+                    tmp[0][n] = carray_ext.cum_sum(self[col].where(bool_arr))
+                    # end of (x)
+                    #
+                    # option (y)
+                    # v_cum = 0
+                    # for v in self[col].where(bool_arr):
+                    #     if v == v:  # leave out NA values
+                    #         v_cum += v
+                    # tmp[0][n] = v_cum
+                    # end of (y)
+                    #
+                    # option (z)
+                    # sum((x for x in self[col].where(bool_arr) if x == x))
+                    # end of (z)
 
             ct_agg[k] = tmp
 

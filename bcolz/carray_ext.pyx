@@ -62,7 +62,7 @@ IntType = np.dtype(np.int_)
 # numpy functions & objects
 from definitions cimport import_array, ndarray, dtype, \
     malloc, realloc, free, memcpy, memset, strdup, strcmp, \
-    npy_uint8, npy_uint64, npy_int64, \
+    npy_uint8, npy_uint64, npy_int64, npy_float64, \
     PyString_AsString, PyString_GET_SIZE, \
     PyString_FromStringAndSize, \
     Py_BEGIN_ALLOW_THREADS, Py_END_ALLOW_THREADS, \
@@ -2901,6 +2901,19 @@ def _group_bool_array(ndarray[npy_uint64] index_array,
 
     return bool_carray
 # _group_bool_array(sorted_index, k)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def cum_sum(iter_):
+    cdef:
+        npy_float64 v, v_cum
+
+    v_cum = 0
+    for v in iter_:
+        if v == v:  # leave out NA values
+            v_cum += v
+
+    return v_cum
 
 ## Local Variables:
 ## mode: python
