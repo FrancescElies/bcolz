@@ -2904,7 +2904,7 @@ def _group_bool_array(ndarray[npy_uint64] index_array,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cum_sum(iter_):
+def sum_na_cython(iter_):
     cdef:
         npy_float64 v, v_cum
 
@@ -2912,6 +2912,18 @@ def cum_sum(iter_):
     for v in iter_:
         if v == v:  # leave out NA values
             v_cum += v
+
+    return v_cum
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def sum_cython(iter_):
+    cdef:
+        npy_float64 v, v_cum
+
+    v_cum = 0
+    for v in iter_:
+        v_cum += v
 
     return v_cum
 

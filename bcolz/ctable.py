@@ -1322,7 +1322,7 @@ class ctable(object):
                     # at the moment only sum aggregations implemented
                     #
                     # option (x)
-                    tmp[0][n] = carray_ext.cum_sum(self[col].where(bool_arr))
+                    tmp[0][n] = carray_ext.sum_cython(self[col].where(bool_arr))
                     # end of (x)
                     #
                     # option (y)
