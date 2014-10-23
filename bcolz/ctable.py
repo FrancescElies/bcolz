@@ -1345,20 +1345,11 @@ class ctable(object):
 
                 # now factorize the unique groupby combinations
                 factor_carray, values = carray_ext.factorize(factor_input)
-                value_carray = carray_ext.carray(values.values(), dtype=factor_input.dtype)
 
-                # the groupby output columns here to be translated from the value_carray back into ordered carrays
-                pass  # to be made
-
-            # sort the index, not needed if option (1) is used
-            # TODO: get rid of groupsort_factor_carray (value_counts still used in _aggregated_counts)
-            sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
-            # create the aggregated values corresponding to the result index
             return \
                 carray_ext._aggregated_counts(
                     self,
-                    sorted_index,
-                    value_counts,
+                    len(values),
                     factor_carray,
                     groupby_cols)
 

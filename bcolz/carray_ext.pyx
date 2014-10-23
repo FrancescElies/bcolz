@@ -2930,19 +2930,17 @@ def sum_cython(iter_):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _aggregated_counts(self_ctable,
-                       ndarray[npy_uint64] sorted_index,
-                       ndarray[npy_uint64] value_counts,
+                       npy_uint64 len_value_counts,
                        carray factor_carray,
                        list groupby_cols,
                        ):
     cdef:
-        npy_uint64 len_value_counts, current_start, k, n
+        npy_uint64 current_start, k, n
         npy_float64 v_cum
         char *col
         carray bool_arr
         ndarray tmp
 
-    len_value_counts = len(value_counts) - 1
     ct_agg = bcolz.ctable(
         np.empty(len_value_counts, self_ctable.dtype),
         expectedlen=len_value_counts)
