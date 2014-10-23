@@ -1305,13 +1305,13 @@ class ctable(object):
             # end of (1)
 
             # option (2)
-            current_length = int(value_counts[k + 1])
-            current_end = current_start + current_length
-            sub_index = sorted_index[current_start:current_end]
-
-            bool_arr = carray_ext._group_bool_array(sub_index, len_sorted_index)
-
-            current_start += current_length
+            # current_length = int(value_counts[k + 1])
+            # current_end = current_start + current_length
+            # sub_index = sorted_index[current_start:current_end]
+            #
+            # bool_arr = carray_ext._group_bool_array(sub_index, len_sorted_index)
+            #
+            # current_start += current_length
             # end of (2)
 
             for (n, col) in enumerate(self.names):
@@ -1329,6 +1329,22 @@ class ctable(object):
             ct_agg[k] = tmp
 
         return ct_agg
+
+    def retrieve_grouped_values(self, values, factor_carray):
+        grouped_values = {}
+
+        for v_fac in values:
+            grouped_values[v_fac] = {}
+            for col in self.names:
+                grouped_values[v_fac][col] = \
+                    carray_ext.carray([], dtype=self[col].dtype)
+
+        for col in self.names:
+            # TODO: avoid copy of equal string (e.g. 'a1')
+            for v_fac, v in itertools.izip(factor_carray, self[col]):
+                grouped_values[v_fac][col].append(v)
+
+        return grouped_values
 
     def groupby(self, groupby_cols, agg_set):
         # first check if the factorized arrays already exist unless we need to refresh the cache
@@ -1394,6 +1410,11 @@ class ctable(object):
                 # the groupby output columns here to be translated from the value_carray back into ordered carrays
                 pass  # to be made
 
+            # option(a)
+            grouped_values = self.retrieve_grouped_values(values, factor_carray)
+            # end of (a)
+
+            # option (b)
             # sort the index
             sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
             # create the aggregated values corresponding to the result index
@@ -1402,6 +1423,7 @@ class ctable(object):
                     sorted_index, value_counts,
                     groupby_cols=groupby_cols,
                     factor_carray=factor_carray)
+            # end of (b)
 
 
 
