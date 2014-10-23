@@ -47,7 +47,8 @@ fact_bcolz.rootdir
 self = fact_bcolz
 
 # this caches the factorizations on-disk directly in the rootdir
-fact_bcolz.cache_factor(groupby_cols, refresh=True) 
+with ctime("cache"):
+    fact_bcolz.cache_factor(groupby_cols, refresh=True) 
 # does the first 3 parts of the groupby, see the code
 print fact_bcolz.groupby(groupby_cols, {})
 
