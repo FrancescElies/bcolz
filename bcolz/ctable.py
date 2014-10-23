@@ -1405,8 +1405,8 @@ class ctable(object):
                 # the groupby output columns here to be translated from the value_carray back into ordered carrays
                 pass  # to be made
 
-            # sort the index
-            sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
+            # sort the index, not needed if option (1) is used
+            # sorted_index, value_counts = carray_ext.groupsort_factor_carray(factor_carray, len(value_carray))
             # create the aggregated values corresponding to the result index
             return \
                 self._aggregated_counts(
