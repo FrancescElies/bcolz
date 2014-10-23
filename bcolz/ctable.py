@@ -1301,7 +1301,7 @@ class ctable(object):
         for k in range(len_value_counts):
             tmp = np.empty(1, self.dtype)
             # option (1)
-            # bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
+            bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
             # end of (1)
 
             # option (2)
@@ -1340,7 +1340,7 @@ class ctable(object):
                     carray_ext.carray([], dtype=self[col].dtype)
 
         for col in self.names:
-            # TODO: avoid copy of equal string (e.g. 'a1')
+            # TODO: maybe avoid copy of equal string (e.g. 'a1')?
             for v_fac, v in itertools.izip(factor_carray, self[col]):
                 grouped_values[v_fac][col].append(v)
 
@@ -1411,7 +1411,10 @@ class ctable(object):
                 pass  # to be made
 
             # option(a)
-            grouped_values = self.retrieve_grouped_values(values, factor_carray)
+            grouped_values = \
+                self.retrieve_grouped_values(values, factor_carray)
+            print grouped_values
+            exit()
             # end of (a)
 
             # option (b)
