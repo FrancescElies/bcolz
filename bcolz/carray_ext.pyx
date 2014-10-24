@@ -62,7 +62,7 @@ IntType = np.dtype(np.int_)
 # numpy functions & objects
 from definitions cimport import_array, ndarray, dtype, \
     malloc, realloc, free, memcpy, memset, strdup, strcmp, \
-    npy_uint8, npy_uint64, npy_int64, npy_float64, \
+    npy_uint8, npy_uint32, npy_int32, npy_uint64, npy_int64, npy_float64, \
     PyString_AsString, PyString_GET_SIZE, \
     PyString_FromStringAndSize, \
     Py_BEGIN_ALLOW_THREADS, Py_END_ALLOW_THREADS, \
@@ -2806,8 +2806,97 @@ def factorize_int64(carray carray_, carray labels=None):
 
     return labels, reverse
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void _factorize_int32_helper(Py_ssize_t iter_range,
+                       Py_ssize_t allocation_size,
+                       ndarray[npy_int32] in_buffer,
+                       ndarray[npy_uint32] out_buffer,
+                       kh_int32_t *table,
+                       Py_ssize_t * count,
+                       dict reverse,
+                       ):
+    cdef:
+        Py_ssize_t i, idx
+        int ret
+        npy_int32 element
+        khiter_t k
+
+    ret = 0
+
+    for i in range(iter_range):
+        element = in_buffer[i]
+        k = kh_get_int32(table, element)
+        if k != table.n_buckets:
+            idx = table.vals[k]
+        else:
+            k = kh_put_int32(table, element, &ret)
+            table.vals[k] = idx = count[0]
+            reverse[count[0]] = element
+            count[0] += 1
+        out_buffer[i] = idx
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def factorize_int32(carray carray_, carray labels=None):
+    cdef:
+        chunk chunk_
+        Py_ssize_t n, i, count, chunklen, leftover_elements
+        dict reverse
+        ndarray[npy_int32] in_buffer
+        ndarray[npy_uint32] out_buffer
+        kh_int32_t *table
+
+    count = 0
+    ret = 0
+    reverse = {}
+
+    n = len(carray_)
+    chunklen = carray_.chunklen
+    if labels is None:
+        labels = carray([], dtype='int32', expectedlen=n)
+    # in-buffer isn't typed, because cython doesn't support string arrays (?)
+    out_buffer = np.empty(chunklen, dtype='uint32')
+    in_buffer = np.empty(chunklen, dtype=carray_.dtype)
+    table = kh_init_int32()
+
+    for i in range(carray_.nchunks):
+        chunk_ = carray_.chunks[i]
+        # decompress into in_buffer
+        chunk_._getitem(0, chunklen, in_buffer.data)
+        _factorize_int32_helper(chunklen,
+                        carray_.dtype.itemsize + 1,
+                        in_buffer,
+                        out_buffer,
+                        table,
+                        &count,
+                        reverse,
+                        )
+        # compress out_buffer into labels
+        labels.append(out_buffer.astype(np.int32))
+
+    leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
+    if leftover_elements > 0:
+        _factorize_int32_helper(leftover_elements,
+                          carray_.dtype.itemsize + 1,
+                          carray_.leftover_array,
+                          out_buffer,
+                          table,
+                          &count,
+                          reverse,
+                          )
+
+    # compress out_buffer into labels
+    labels.append(out_buffer[:leftover_elements].astype(np.int32))
+
+    kh_destroy_int32(table)
+
+    return labels, reverse
+
 def factorize(carray carray_, carray labels=None):
-    if carray_.dtype == 'int64':
+    if carray_.dtype == 'int32':
+        labels, reverse = factorize_int32(carray_, labels=labels)
+    elif carray_.dtype == 'int64':
         labels, reverse = factorize_int64(carray_, labels=labels)
     else:
         #TODO: check that the input is a string_ dtype type
