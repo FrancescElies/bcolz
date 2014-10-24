@@ -20,15 +20,19 @@ def ctime(label=""):
 
 
 # -- Common inputs for groupby --
+# a1: dtype string
+# a2: dtype float64
+# a3: dtype int32
+# a4: dtype int64
 projects = [
-{'a1': 'build roads',  'a2': 1.1, 'a3': 2, 'm1':   1, 'm2':  2, 'm3':    3.2},
-{'a1': 'fight crime',  'a2': 1.2, 'a3': 1, 'm1':   2, 'm2':  3, 'm3':    4.1},
-{'a1': 'help farmers', 'a2': 1.2, 'a3': 1, 'm1':   4, 'm2':  5, 'm3':    6.2},
-{'a1': 'help farmers', 'a2': 1.1, 'a3': 3, 'm1':   8, 'm2':  9, 'm3':   10.9},
-{'a1': 'build roads',  'a2': 1.1, 'a3': 3, 'm1':  16, 'm2': 17, 'm3':   18.2},
-{'a1': 'fight crime',  'a2': 1.2, 'a3': 1, 'm1':  32, 'm2': 33, 'm3':   34.3},
-{'a1': 'help farmers', 'a2': 1.2, 'a3': 2, 'm1':  64, 'm2': 65, 'm3':   66.6},
-{'a1': 'help farmers', 'a2': 1.3, 'a3': 3, 'm1': 128, 'm2': 129, 'm3': 130.9}
+{'a1': 'build roads',  'a2': 1.1, 'a3': 2, 'a4': 2000000000, 'm1':   1, 'm2':  2, 'm3':    3.2},
+{'a1': 'fight crime',  'a2': 1.2, 'a3': 1, 'a4': 1000000000, 'm1':   2, 'm2':  3, 'm3':    4.1},
+{'a1': 'help farmers', 'a2': 1.2, 'a3': 1, 'a4': 1000000000, 'm1':   4, 'm2':  5, 'm3':    6.2},
+{'a1': 'help farmers', 'a2': 1.1, 'a3': 3, 'a4': 3000000000, 'm1':   8, 'm2':  9, 'm3':   10.9},
+{'a1': 'build roads',  'a2': 1.1, 'a3': 3, 'a4': 3000000000, 'm1':  16, 'm2': 17, 'm3':   18.2},
+{'a1': 'fight crime',  'a2': 1.2, 'a3': 1, 'a4': 1000000000, 'm1':  32, 'm2': 33, 'm3':   34.3},
+{'a1': 'help farmers', 'a2': 1.2, 'a3': 2, 'a4': 2000000000, 'm1':  64, 'm2': 65, 'm3':   66.6},
+{'a1': 'help farmers', 'a2': 1.3, 'a3': 3, 'a4': 3000000000, 'm1': 128, 'm2': 129, 'm3': 130.9}
 ]
 
 N = int(1e6)
@@ -38,6 +42,9 @@ agg_list = ['m1', 'm2']
 
 # -- Pandas --
 df = pd.DataFrame(projects * N)
+# force certain columns dtypes as int32
+df.a3 = df.a3.astype(np.int32)
+df.m1 = df.m1.astype(np.int32)
 
 print 'reference\n', df.groupby(groupby_cols, sort=True)[agg_list].sum()
 with ctime("Pandas groupby"):
@@ -51,7 +58,6 @@ rootdir = tempfile.mkdtemp(prefix=prefix)
 os.rmdir(rootdir) # folder should be emtpy
 fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
 fact_bcolz.rootdir
-self = fact_bcolz
 
 # this caches the factorizations on-disk directly in the rootdir
 with ctime("Bcolz caching"):
