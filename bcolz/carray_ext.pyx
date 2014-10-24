@@ -2875,9 +2875,9 @@ def aggregate_groups(ct_input,
 
         for col, agg_op in output_agg_ops:
             if agg_op == 1:  # sum
-                agg_sum(ct_input[col].where(bool_arr))
+                tmp[0][n] = agg_sum(ct_input[col].where(bool_arr))
             elif agg_op == 2:  # sum_na
-                agg_sum_na(ct_input[col].where(bool_arr))
+                tmp[0][n] = agg_sum_na(ct_input[col].where(bool_arr))
             n += 1
 
         ct_agg[k] = tmp
