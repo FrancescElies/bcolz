@@ -1419,12 +1419,11 @@ class ctable(object):
 
         ct_agg = bcolz.ctable(
             np.zeros(0, dtype_list),
-            names=cols,
             expectedlen=nr_groups,
             rootdir=rootdir)
 
         # perform aggregation
-        aggregate_groups(self,
+        carray_ext.aggregate_groups(self,
                         ct_agg,
                         nr_groups,
                         factor_carray,
