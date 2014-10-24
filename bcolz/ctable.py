@@ -1292,10 +1292,6 @@ class ctable(object):
         factor_list = []
         values_list = []
 
-        # Collect metadata
-        dtypes = [t.dtype.fields[name][0] for name in names]
-        cols = [np.zeros(0, dtype=dt) for dt in dtypes]
-
         # factorize the groupby columns
         for col in groupby_cols:
 
@@ -1347,16 +1343,20 @@ class ctable(object):
                     previous_value *= len(values)
 
                 # calculate the actual value for each row
-                # TODO: we cannot numexpr eval atm over unsigned integers
-                factor_input = bcolz.eval(eval_str, user_dict=factor_set, vm='python')
+                factor_input = bcolz.eval(eval_str, user_dict=factor_set)
 
                 # now factorize the unique groupby combinations
                 factor_carray, values = carray_ext.factorize(factor_input)
 
+        # create output table
+        # Collect metadata
+        # dtypes = [t.dtype.fields[name][0] for name in names]
+        # cols = [np.zeros(0, dtype=dt) for dt in dtypes]
+
         ct_agg = bcolz.ctable(
             np.zeros(nr_groups, self_ctable.dtype),
             expectedlen=nr_groups,
-            rootdir=rootdir)
+            rootdir=output_rootdir_rootdir)
 
         return carray_ext.aggregate_groups(
             self,

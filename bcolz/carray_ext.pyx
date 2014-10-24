@@ -2630,7 +2630,7 @@ cdef class carray:
 cdef void _factorize_str_helper(Py_ssize_t iter_range,
                        Py_ssize_t allocation_size,
                        ndarray in_buffer,
-                       ndarray[npy_int64] out_buffer,
+                       ndarray[npy_uint64] out_buffer,
                        kh_str_t *table,
                        Py_ssize_t * count,
                        dict reverse,
@@ -2670,7 +2670,7 @@ def factorize_str(carray carray_, carray labels=None):
         Py_ssize_t n, i, count, chunklen, leftover_elements
         dict reverse
         ndarray in_buffer
-        ndarray[npy_int64] out_buffer
+        ndarray[npy_uint64] out_buffer
         kh_str_t *table
 
     count = 0
@@ -2699,7 +2699,7 @@ def factorize_str(carray carray_, carray labels=None):
                         reverse,
                         )
         # compress out_buffer into labels
-        labels.append(out_buffer)
+        labels.append(out_buffer.astype(np.int64))
 
     leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
     if leftover_elements > 0:
@@ -2713,7 +2713,7 @@ def factorize_str(carray carray_, carray labels=None):
                           )
 
     # compress out_buffer into labels
-    labels.append(out_buffer[:leftover_elements])
+    labels.append(out_buffer[:leftover_elements].astype(np.int64))
 
     kh_destroy_str(table)
 
@@ -2724,7 +2724,7 @@ def factorize_str(carray carray_, carray labels=None):
 cdef void _factorize_int64_helper(Py_ssize_t iter_range,
                        Py_ssize_t allocation_size,
                        ndarray[npy_int64] in_buffer,
-                       ndarray[npy_int64] out_buffer,
+                       ndarray[npy_uint64] out_buffer,
                        kh_int64_t *table,
                        Py_ssize_t * count,
                        dict reverse,
@@ -2757,7 +2757,7 @@ def factorize_int64(carray carray_, carray labels=None):
         Py_ssize_t n, i, count, chunklen, leftover_elements
         dict reverse
         ndarray[npy_int64] in_buffer
-        ndarray[npy_int64] out_buffer
+        ndarray[npy_uint64] out_buffer
         kh_int64_t *table
 
     count = 0
@@ -2767,7 +2767,7 @@ def factorize_int64(carray carray_, carray labels=None):
     n = len(carray_)
     chunklen = carray_.chunklen
     if labels is None:
-        labels = carray([], dtype='uint64', expectedlen=n)
+        labels = carray([], dtype='int64', expectedlen=n)
     # in-buffer isn't typed, because cython doesn't support string arrays (?)
     out_buffer = np.empty(chunklen, dtype='uint64')
     in_buffer = np.empty(chunklen, dtype=carray_.dtype)
@@ -2786,7 +2786,7 @@ def factorize_int64(carray carray_, carray labels=None):
                         reverse,
                         )
         # compress out_buffer into labels
-        labels.append(out_buffer)
+        labels.append(out_buffer.astype(np.int64))
 
     leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
     if leftover_elements > 0:
@@ -2800,7 +2800,7 @@ def factorize_int64(carray carray_, carray labels=None):
                           )
 
     # compress out_buffer into labels
-    labels.append(out_buffer[:leftover_elements])
+    labels.append(out_buffer[:leftover_elements].astype(np.int64))
 
     kh_destroy_int64(table)
 
@@ -2861,7 +2861,7 @@ def aggregate_groups(ct_input,
 
     for k in range(nr_groups):
         # create the index for the group
-        bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
+        bool_arr = bcolz.eval('ca == ' + str(k), user_dict={'ca': factor_carray})
 
         # create output
         tmp = np.empty(1, dtype_set)
