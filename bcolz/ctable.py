@@ -1416,10 +1416,6 @@ class ctable(object):
 
         # create aggregation table
         cols = groupby_cols + agg_cols
-        col_array_list = []
-        for dtype_set in dtype_list:
-            col_array_list.append()
-            in carray([], dtype='uint64', expected_len=nr_groups)
 
         ct_agg = bcolz.ctable(
             np.zeros(0, dtype_list),
