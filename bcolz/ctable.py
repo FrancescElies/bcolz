@@ -1286,12 +1286,17 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
-    def groupby(self, groupby_cols, agg_set):
-        # first check if the factorized arrays already exist unless we need to refresh the cache
+    def groupby(self, groupby_cols, agg_set, output_rootdir=None):
 
+        # first check if the factorized arrays already exist unless we need to refresh the cache
         factor_list = []
         values_list = []
 
+        # Collect metadata
+        dtypes = [t.dtype.fields[name][0] for name in names]
+        cols = [np.zeros(0, dtype=dt) for dt in dtypes]
+
+        # factorize the groupby columns
         for col in groupby_cols:
 
             cached = False
@@ -1311,26 +1316,28 @@ class ctable(object):
             factor_list.append(col_factor_carray)
             values_list.append(col_values_carray)
 
+        # perform groupby
+
         if len(groupby_cols) == 0:
-            # no columns to groupby over, so just aggregate the measure columns to 1 total
-            # needs to be added
-            pass
+            # no columns to groupby over, so directly aggregate the measure columns to 1 total
+            # still needs to be added
+            return None
 
         else:
 
             if len(groupby_cols) == 1:
-                # single column groupby
+                # single column groupby, the groupby output column here is 1:1 to the values
                 factor_carray = factor_list[0]
-                value_carray = values_list[0]
-                # the groupby output column here is 1:1 to the values
-                value_col_list = [values_list[0]]
+                values = values_list[0]
 
             else:
                 # multi column groupby
-                # nb: this can also be cached
+                # nb: this might also be cached in the future
 
                 # first combine the factorized columns to single values
                 factor_set = {x: y for x, y in zip(groupby_cols, factor_list)}
+
+                # create a numexpr expression that calculates the place on a cartesian join
                 eval_str = ''
                 previous_value = 1
                 for col, values in zip(reversed(groupby_cols), reversed(values_list)):
@@ -1339,22 +1346,25 @@ class ctable(object):
                     eval_str += str(previous_value) + '*' + col
                     previous_value *= len(values)
 
-                # TODO: we cannot numexpr eval atm over unsigned integers; see also https://github.com/pydata/pandas/pull/8547 <- should keep unsigned so np.eval should be extended to handle uint64 ideally!
-                # NotImplementedError: variable ``a2`` refers to a 64-bit unsigned integer object, that is not yet supported in numexpr expressions; rather, use the 'python' vm.
+                # calculate the actual value for each row
+                # TODO: we cannot numexpr eval atm over unsigned integers
                 factor_input = bcolz.eval(eval_str, user_dict=factor_set, vm='python')
 
                 # now factorize the unique groupby combinations
                 factor_carray, values = carray_ext.factorize(factor_input)
 
-            return \
-                carray_ext._aggregated_counts(
-                    self,
-                    len(values),
-                    factor_carray,
-                    groupby_cols)
+        ct_agg = bcolz.ctable(
+            np.zeros(nr_groups, self_ctable.dtype),
+            expectedlen=nr_groups,
+            rootdir=rootdir)
 
-
-
+        return carray_ext.aggregate_groups(
+            self,
+            len(values),
+            factor_carray,
+            groupby_cols,
+            rootdir=output_rootdir
+        )
 
 
 # Local Variables:

@@ -2630,7 +2630,7 @@ cdef class carray:
 cdef void _factorize_str_helper(Py_ssize_t iter_range,
                        Py_ssize_t allocation_size,
                        ndarray in_buffer,
-                       ndarray[npy_uint64] out_buffer,
+                       ndarray[npy_int64] out_buffer,
                        kh_str_t *table,
                        Py_ssize_t * count,
                        dict reverse,
@@ -2670,7 +2670,7 @@ def factorize_str(carray carray_, carray labels=None):
         Py_ssize_t n, i, count, chunklen, leftover_elements
         dict reverse
         ndarray in_buffer
-        ndarray[npy_uint64] out_buffer
+        ndarray[npy_int64] out_buffer
         kh_str_t *table
 
     count = 0
@@ -2724,7 +2724,7 @@ def factorize_str(carray carray_, carray labels=None):
 cdef void _factorize_int64_helper(Py_ssize_t iter_range,
                        Py_ssize_t allocation_size,
                        ndarray[npy_int64] in_buffer,
-                       ndarray[npy_uint64] out_buffer,
+                       ndarray[npy_int64] out_buffer,
                        kh_int64_t *table,
                        Py_ssize_t * count,
                        dict reverse,
@@ -2757,7 +2757,7 @@ def factorize_int64(carray carray_, carray labels=None):
         Py_ssize_t n, i, count, chunklen, leftover_elements
         dict reverse
         ndarray[npy_int64] in_buffer
-        ndarray[npy_uint64] out_buffer
+        ndarray[npy_int64] out_buffer
         kh_int64_t *table
 
     count = 0
@@ -2818,110 +2818,22 @@ def factorize(carray carray_, carray labels=None):
 # Sorts Section
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_factor_carray(carray labels, npy_uint64 ngroups):
+def agg_sum_na(iter_):
     cdef:
-        npy_uint64 n, i, label_, label, labels_chunklen, element
-        ndarray[npy_uint64] where, result, counts
-        chunk chunk_
-        ndarray in_buffer
+        npy_float64 v, v_cum = 0.0
 
-    n = len(labels)
-    labels_chunklen = labels.chunklen
-    in_buffer = np.empty(labels_chunklen, dtype=labels.dtype)
-    # TODO: make possible out of core carrays <-
-
-    # count group sizes, location 0 for NA
-    # todo: non-sequential writing to a carray gives performance issues, numpy array for now
-    # counts = bcolz.zeros(ngroups + 1, dtype='uint64')
-    counts = np.zeros(ngroups + 1, dtype='uint64')
-
-    for i in range(labels.nchunks):
-        chunk_ = labels.chunks[i]
-        # decompress into in_buffer
-        chunk_._getitem(0, labels_chunklen, in_buffer.data)
-        for i in range(labels_chunklen):
-            counts[<npy_uint64>in_buffer[i] + 1] += 1
-
-    leftover_elements = cython.cdiv(labels.leftover, labels.atomsize)
-    for i in range(leftover_elements):
-            counts[<npy_uint64>labels.leftover_array[i] + 1] += 1
-
-    # mark the start of each contiguous group of like-indexed data
-    # where = bcolz.zeros(ngroups + 1, dtype='uint64')
-    where = np.zeros(<npy_uint64> (ngroups + 1), dtype='uint64')
-    for i in range(1, ngroups + 1):
-        where[i] = where[i - 1] + counts[i - 1]
-
-    # this is our indexer
-    # todo: non-sequential writing to a carray gives performance issues, numpy array for now
-    # result = bcolz.zeros(n, dtype='uint64')
-    result = np.zeros(n, dtype='uint64')
-    i = 0
-    for label_ in labels.iter():
-        label = label_ + 1
-        # label = labels[i] + 1
-        result[where[label]] = i
-        where[label] += 1
-        i += 1
-    return result, counts
-
-import numpy as np
-import cython
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def _group_bool_array(ndarray[npy_uint64] index_array,
-                      npy_uint64 len_factor_carray
-                      ):
-    cdef:
-        npy_uint64 j, i, index_counter, max_index_counter, current_index
-        carray bool_carray
-
-    last_index = index_array[-1]
-    bool_carray = carray([], dtype='bool', expectedlen=len_factor_carray)
-        # bcolz.zeros(0, dtype='bool', expected_len=len_factor_carray)
-
-    i = 0
-    index_counter = 0
-    max_index_counter = len(index_array) - 1
-    current_index = index_array[index_counter]
-    for i in range(len_factor_carray):
-        if i == current_index:
-            bool_carray.append(1)
-            if index_counter == max_index_counter:
-                break
-            index_counter += 1
-            current_index = index_array[index_counter]
-        else:
-            bool_carray.append(0)
-
-    # fill up the rest of the array quickly
-    diff = len_factor_carray - i -1
-    for i in range(diff):
-        bool_carray.append(0)
-
-    return bool_carray
-# _group_bool_array(sorted_index, k)
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def sum_na_cython(iter_):
-    cdef:
-        npy_float64 v, v_cum
-
-    v_cum = 0
     for v in iter_:
-        if v == v:  # leave out NA values
+        if v == v:  # skip NA values
             v_cum += v
 
     return v_cum
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def sum_cython(iter_):
+def agg_sum(iter_):
     cdef:
-        npy_float64 v, v_cum
+        npy_float64 v, v_cum = 0.0
 
-    v_cum = 0
     for v in iter_:
         v_cum += v
 
@@ -2929,45 +2841,47 @@ def sum_cython(iter_):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _aggregated_counts(self_ctable,
-                       npy_uint64 len_value_counts,
-                       carray factor_carray,
-                       list groupby_cols,
-                       ):
+def aggregate_groups(ct_input,
+                        ct_agg,
+                        npy_uint64 nr_groups,
+                        carray factor_carray,
+                        list groupby_cols,
+                        list output_agg_ops,
+                        dict dtype_set
+                        ):
     cdef:
         npy_uint64 current_start, k, n
         npy_float64 v_cum
+        int agg_op
         char *col
         carray bool_arr
         ndarray tmp
 
-    ct_agg = bcolz.ctable(
-        np.empty(len_value_counts, self_ctable.dtype),
-        expectedlen=len_value_counts)
-
     current_start = 0
 
-    for k in range(len_value_counts):
-        tmp = np.empty(1, self_ctable.dtype)
-
+    for k in range(nr_groups):
+        # create the index for the group
         bool_arr = bcolz.eval('factor_carray == ' + str(k), vm='python')
 
+        # create output
+        tmp = np.empty(1, dtype_set)
 
+        # loop through n
         n = 0
-        for n in range(len(self_ctable.names)):
-            col = self_ctable.names[n]
-            if col in groupby_cols:
-                # only first value needed
-                tmp[0][n] = self_ctable[col].where(bool_arr).next()
-            else:
-                tmp[0][n] = \
-                    sum_cython(self_ctable[col].where(bool_arr))
-                # end of (b)
+
+        for col in groupby_cols:
+            tmp[0][n] = ct_input[col].where(bool_arr).next()
+            n += 1
+
+        for col, agg_op in output_agg_ops:
+            if agg_op == 1:  # sum
+                agg_sum(ct_input[col].where(bool_arr))
+            elif agg_op == 2:  # sum_na
+                agg_sum_na(ct_input[col].where(bool_arr))
             n += 1
 
         ct_agg[k] = tmp
 
-    return ct_agg
 
 ## Local Variables:
 ## mode: python
