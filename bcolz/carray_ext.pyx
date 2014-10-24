@@ -2893,11 +2893,101 @@ def factorize_int32(carray carray_, carray labels=None):
 
     return labels, reverse
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void _factorize_float64_helper(Py_ssize_t iter_range,
+                       Py_ssize_t allocation_size,
+                       ndarray[npy_float64] in_buffer,
+                       ndarray[npy_uint64] out_buffer,
+                       kh_float64_t *table,
+                       Py_ssize_t * count,
+                       dict reverse,
+                       ):
+    cdef:
+        Py_ssize_t i, idx
+        int ret
+        npy_float64 element
+        khiter_t k
+
+    ret = 0
+
+    for i in range(iter_range):
+        # TODO: Consider indexing directly into the array for efficiency
+        element = in_buffer[i]
+        k = kh_get_float64(table, element)
+        if k != table.n_buckets:
+            idx = table.vals[k]
+        else:
+            k = kh_put_float64(table, element, &ret)
+            table.vals[k] = idx = count[0]
+            reverse[count[0]] = element
+            count[0] += 1
+        out_buffer[i] = idx
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def factorize_float64(carray carray_, carray labels=None):
+    cdef:
+        chunk chunk_
+        Py_ssize_t n, i, count, chunklen, leftover_elements
+        dict reverse
+        ndarray in_buffer
+        ndarray[npy_uint64] out_buffer
+        kh_float64_t *table
+
+    count = 0
+    ret = 0
+    reverse = {}
+
+    n = len(carray_)
+    chunklen = carray_.chunklen
+    if labels is None:
+        labels = carray([], dtype='float64', expectedlen=n)
+    # in-buffer isn't typed, because cython doesn't support string arrays (?)
+    out_buffer = np.empty(chunklen, dtype='uint64')
+    in_buffer = np.empty(chunklen, dtype=carray_.dtype)
+    table = kh_init_float64()
+
+    for i in range(carray_.nchunks):
+        chunk_ = carray_.chunks[i]
+        # decompress into in_buffer
+        chunk_._getitem(0, chunklen, in_buffer.data)
+        _factorize_float64_helper(chunklen,
+                        carray_.dtype.itemsize + 1,
+                        in_buffer,
+                        out_buffer,
+                        table,
+                        &count,
+                        reverse,
+                        )
+        # compress out_buffer into labels
+        labels.append(out_buffer.astype(np.int64))
+
+    leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
+    if leftover_elements > 0:
+        _factorize_float64_helper(leftover_elements,
+                          carray_.dtype.itemsize + 1,
+                          carray_.leftover_array,
+                          out_buffer,
+                          table,
+                          &count,
+                          reverse,
+                          )
+
+    # compress out_buffer into labels
+    labels.append(out_buffer[:leftover_elements].astype(np.int64))
+
+    kh_destroy_float64(table)
+
+    return labels, reverse
+
 def factorize(carray carray_, carray labels=None):
     if carray_.dtype == 'int32':
         labels, reverse = factorize_int32(carray_, labels=labels)
     elif carray_.dtype == 'int64':
         labels, reverse = factorize_int64(carray_, labels=labels)
+    elif carray_.dtype == 'float64':
+        labels, reverse = factorize_float64(carray_, labels=labels)
     else:
         #TODO: check that the input is a string_ dtype type
         labels, reverse = factorize_str(carray_, labels=labels)
