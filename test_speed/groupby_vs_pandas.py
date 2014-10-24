@@ -70,7 +70,7 @@ with ctime("Bcolz groupby"):
 
 elapsed_bcolz = g_elapsed
 
-print elapsed_bcolz / elapsed_pandas, 'x times slower than pandas'
+print round(elapsed_bcolz / elapsed_pandas, 3), 'x times slower than pandas'
 
 # -- test speed in Ipython --
 # %timeit fact_bcolz.groupby(['a1', 'a2', 'a3'], ['m1', 'm2'])
