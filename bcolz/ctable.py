@@ -1415,10 +1415,15 @@ class ctable(object):
             dtype_list.append((output_col, col_dtype))
 
         # create aggregation table
-        names = groupby_cols + agg_cols
+        cols = groupby_cols + agg_cols
+        col_array_list = []
+        for dtype_set in dtype_list:
+            col_array_list.append()
+            in carray([], dtype='uint64', expected_len=nr_groups)
+
         ct_agg = bcolz.ctable(
-            np.zeros(nr_groups, dtype_set),
-            names=names,
+            np.zeros(0, dtype_list),
+            names=cols,
             expectedlen=nr_groups,
             rootdir=rootdir)
 

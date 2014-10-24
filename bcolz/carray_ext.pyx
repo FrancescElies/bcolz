@@ -2880,7 +2880,7 @@ def aggregate_groups(ct_input,
                 tmp[0][n] = agg_sum_na(ct_input[col].where(bool_arr))
             n += 1
 
-        ct_agg[k] = tmp
+        ct_agg.append(tmp)
 
 
 ## Local Variables:
