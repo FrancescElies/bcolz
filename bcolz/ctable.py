@@ -1286,7 +1286,29 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
-    def groupby(self, groupby_cols, agg_set, output_rootdir=None):
+    def groupby(self, groupby_cols, agg_list, boolarr=None, rootdir=None):
+        """
+        Aggregate the ctable
+
+        groupby_cols: a list of columns to groupby over
+        agg_list: the aggregation operations, which can be:
+         - a straight forward sum of a list columns with a similarly named output: ['m1', 'm2', ...]
+         - a list of new column input/output settings [['mnew1', 'm1'], ['mnew2', 'm2], ...]
+         - a list that includes the type of aggregation for each column, i.e.
+           [['mnew1', 'm1', 'sum'], ['mnew2', 'm1, 'avg'], ...]
+
+        Currently supported aggregation operations are:
+        - sum
+        - sum_na (that checks for nan values and excludes them)
+        - To be added: mean, mean_na (and perhaps standard deviation etc)
+
+        boolarr: to be added (filtering the groupby factorization input)
+        rootdir: the aggregation ctable rootdir
+
+        """
+
+        if not agg_list:
+            raise AttributeError('One or more aggregation operations need to be defined')
 
         # first check if the factorized arrays already exist unless we need to refresh the cache
         factor_list = []
@@ -1312,7 +1334,7 @@ class ctable(object):
             factor_list.append(col_factor_carray)
             values_list.append(col_values_carray)
 
-        # perform groupby
+        # create unique groups for groupby loop
 
         if len(groupby_cols) == 0:
             # no columns to groupby over, so directly aggregate the measure columns to 1 total
@@ -1333,7 +1355,7 @@ class ctable(object):
                 # first combine the factorized columns to single values
                 factor_set = {x: y for x, y in zip(groupby_cols, factor_list)}
 
-                # create a numexpr expression that calculates the place on a cartesian join
+                # create a numexpr expression that calculates the place on a cartesian join index
                 eval_str = ''
                 previous_value = 1
                 for col, values in zip(reversed(groupby_cols), reversed(values_list)):
@@ -1342,29 +1364,73 @@ class ctable(object):
                     eval_str += str(previous_value) + '*' + col
                     previous_value *= len(values)
 
-                # calculate the actual value for each row
+                # calculate the cartesian group index for each row
                 factor_input = bcolz.eval(eval_str, user_dict=factor_set)
 
                 # now factorize the unique groupby combinations
                 factor_carray, values = carray_ext.factorize(factor_input)
 
+        nr_groups = len(values)
+
         # create output table
-        # Collect metadata
-        # dtypes = [t.dtype.fields[name][0] for name in names]
-        # cols = [np.zeros(0, dtype=dt) for dt in dtypes]
+        dtype_set = {}
+        for col in groupby_cols:
+            dtype_set[col] = self[col].dtype
 
+        agg_cols = []
+        agg_ops = []
+        op_translation = {
+            'sum': 1,
+            'sum_na': 2
+            }
+
+        for agg_info in agg_list:
+
+            if not isinstance(agg_info, list):
+                # straight forward sum (a ['m1', 'm2', ...] parameter)
+                output_col = agg_info
+                input_col = agg_info
+                agg_op = 1
+            else:
+                # input/output settings [['mnew1', 'm1'], ['mnew2', 'm2], ...]
+                output_col = agg_info[0]
+                input_col = agg_info[1]
+                if len(agg_info) == 2:
+                    agg_op = 1
+                else:
+                    # input/output settings [['mnew1', 'm1', 'sum'], ['mnew2', 'm1, 'avg'], ...]
+                    agg_op = agg_info[2]
+                    if agg_op not in op_translation:
+                        raise NotImplementedError('Unknown Aggregation Type: ' + unicode(agg_op))
+                    agg_op = op_translation[agg_op]
+
+            col_dtype = self[input_col].dtype
+            # TODO: check if the aggregation columns is numeric
+            # NB: we could build a concatenation for strings like pandas, but I would really prefer to see that as a
+            # separate op
+
+            # save output
+            agg_cols.append(output_col)
+            agg_ops.append((input_col, agg_op))
+            dtype_set[output_col] = col_dtype
+
+        # create aggregation table
         ct_agg = bcolz.ctable(
-            np.zeros(nr_groups, self_ctable.dtype),
+            np.zeros(nr_groups, dtype_set),
+            names=groupby_cols + agg_cols,
             expectedlen=nr_groups,
-            rootdir=output_rootdir_rootdir)
+            rootdir=rootdir)
 
-        return carray_ext.aggregate_groups(
-            self,
-            len(values),
-            factor_carray,
-            groupby_cols,
-            rootdir=output_rootdir
-        )
+        # perform aggregation
+        aggregate_groups(self,
+                        ct_agg,
+                        nr_groups,
+                        factor_carray,
+                        groupby_cols,
+                        agg_ops,
+                        dtype_set)
+
+        return ct_agg
 
 
 # Local Variables:
