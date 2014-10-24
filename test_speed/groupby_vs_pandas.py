@@ -36,8 +36,8 @@ projects = [
 ]
 
 N = int(1e6)
-groupby_cols = ['a1', 'a2', 'a3']
-agg_list = ['m1', 'm2']
+groupby_cols = ['a1', 'a2', 'a3', 'a4']
+agg_list = ['m1', 'm2', 'm3']
 
 
 # -- Pandas --
