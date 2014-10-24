@@ -2847,7 +2847,7 @@ def aggregate_groups(ct_input,
                         carray factor_carray,
                         list groupby_cols,
                         list output_agg_ops,
-                        dict dtype_set
+                        list dtype_list
                         ):
     cdef:
         npy_uint64 current_start, k, n
@@ -2864,7 +2864,7 @@ def aggregate_groups(ct_input,
         bool_arr = bcolz.eval('ca == ' + str(k), user_dict={'ca': factor_carray})
 
         # create output
-        tmp = np.empty(1, dtype_set)
+        tmp = np.empty(1, dtype_list)
 
         # loop through n
         n = 0

@@ -1373,9 +1373,9 @@ class ctable(object):
         nr_groups = len(values)
 
         # create output table
-        dtype_set = {}
+        dtype_list = []
         for col in groupby_cols:
-            dtype_set[col] = self[col].dtype
+            dtype_list.append((col, self[col].dtype))
 
         agg_cols = []
         agg_ops = []
@@ -1407,17 +1407,18 @@ class ctable(object):
             col_dtype = self[input_col].dtype
             # TODO: check if the aggregation columns is numeric
             # NB: we could build a concatenation for strings like pandas, but I would really prefer to see that as a
-            # separate op
+            # separate operation
 
             # save output
             agg_cols.append(output_col)
             agg_ops.append((input_col, agg_op))
-            dtype_set[output_col] = col_dtype
+            dtype_list.append((output_col, col_dtype))
 
         # create aggregation table
+        names = groupby_cols + agg_cols
         ct_agg = bcolz.ctable(
             np.zeros(nr_groups, dtype_set),
-            names=groupby_cols + agg_cols,
+            names=names,
             expectedlen=nr_groups,
             rootdir=rootdir)
 
@@ -1428,7 +1429,7 @@ class ctable(object):
                         factor_carray,
                         groupby_cols,
                         agg_ops,
-                        dtype_set)
+                        dtype_list)
 
         return ct_agg
 
