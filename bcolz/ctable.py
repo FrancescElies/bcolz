@@ -1256,11 +1256,11 @@ class ctable(object):
 
     def cache_factor(self, col_list, refresh=False):
         """
-        Existing issues here are: these should be hidden helper carrays
+        Existing todos here are: these should be hidden helper carrays
         As in: not normal columns that you would normally see as a user
+
         The factor (label index) carray is as long as the original carray (and the rest of the table therefore)
         But the (unique) values carray is not as long (as long as the nr of unique values)
-        Also: the factor carrays have to be available for a ctable .eval
 
         :param col_list:
         :param refresh:
@@ -1310,117 +1310,11 @@ class ctable(object):
         if not agg_list:
             raise AttributeError('One or more aggregation operations need to be defined')
 
-        # first check if the factorized arrays already exist unless we need to refresh the cache
-        factor_list = []
-        values_list = []
+        factor_list, values_list = factorize_groupby_cols(self, groupby_cols)
 
-        # factorize the groupby columns
-        for col in groupby_cols:
+        factor_carray, nr_groups = make_group_index(factor_list, values_list, len(self))
 
-            cached = False
-            col_rootdir = self[col].rootdir
-            if col_rootdir:
-                col_factor_rootdir = col_rootdir + '.factor'
-                col_values_rootdir = col_rootdir + '.values'
-                if os.path.exists(col_factor_rootdir):
-                    cached = True
-                    col_factor_carray = carray_ext.carray(rootdir=col_factor_rootdir, mode='r')
-                    col_values_carray = carray_ext.carray(rootdir=col_values_rootdir, mode='r')
-
-            if not cached:
-                col_factor_carray, values = carray_ext.factorize(self[col])
-                col_values_carray = carray_ext.carray(values.values(), dtype=self[col].dtype)
-
-            factor_list.append(col_factor_carray)
-            values_list.append(col_values_carray)
-
-        # create unique groups for groupby loop
-
-        if len(groupby_cols) == 0:
-            # no columns to groupby over, so directly aggregate the measure columns to 1 total
-            # still needs to be added
-            return None
-
-        else:
-
-            if len(groupby_cols) == 1:
-                # single column groupby, the groupby output column here is 1:1 to the values
-                factor_carray = factor_list[0]
-                values = values_list[0]
-
-            else:
-                # multi column groupby
-                # nb: this might also be cached in the future
-
-                # first combine the factorized columns to single values
-                factor_set = {x: y for x, y in zip(groupby_cols, factor_list)}
-
-                # create a numexpr expression that calculates the place on a cartesian join index
-                eval_str = ''
-                previous_value = 1
-                for col, values in zip(reversed(groupby_cols), reversed(values_list)):
-                    if eval_str:
-                        eval_str += ' + '
-                    eval_str += str(previous_value) + '*' + col
-                    previous_value *= len(values)
-
-                # calculate the cartesian group index for each row
-                factor_input = bcolz.eval(eval_str, user_dict=factor_set)
-
-                # now factorize the unique groupby combinations
-                factor_carray, values = carray_ext.factorize(factor_input)
-
-        nr_groups = len(values)
-
-        # create output table
-        dtype_list = []
-        for col in groupby_cols:
-            dtype_list.append((col, self[col].dtype))
-
-        agg_cols = []
-        agg_ops = []
-        op_translation = {
-            'sum': 1,
-            'sum_na': 2
-            }
-
-        for agg_info in agg_list:
-
-            if not isinstance(agg_info, list):
-                # straight forward sum (a ['m1', 'm2', ...] parameter)
-                output_col = agg_info
-                input_col = agg_info
-                agg_op = 1
-            else:
-                # input/output settings [['mnew1', 'm1'], ['mnew2', 'm2], ...]
-                output_col = agg_info[0]
-                input_col = agg_info[1]
-                if len(agg_info) == 2:
-                    agg_op = 1
-                else:
-                    # input/output settings [['mnew1', 'm1', 'sum'], ['mnew2', 'm1, 'avg'], ...]
-                    agg_op = agg_info[2]
-                    if agg_op not in op_translation:
-                        raise NotImplementedError('Unknown Aggregation Type: ' + unicode(agg_op))
-                    agg_op = op_translation[agg_op]
-
-            col_dtype = self[input_col].dtype
-            # TODO: check if the aggregation columns is numeric
-            # NB: we could build a concatenation for strings like pandas, but I would really prefer to see that as a
-            # separate operation
-
-            # save output
-            agg_cols.append(output_col)
-            agg_ops.append((input_col, agg_op))
-            dtype_list.append((output_col, col_dtype))
-
-        # create aggregation table
-        cols = groupby_cols + agg_cols
-
-        ct_agg = bcolz.ctable(
-            np.zeros(0, dtype_list),
-            expectedlen=nr_groups,
-            rootdir=rootdir)
+        ct_agg, dtype_list, agg_ops = create_agg_ctable(self, groupby_cols, agg_list, rootdir)
 
         # perform aggregation
         carray_ext.aggregate_groups(self,
@@ -1432,6 +1326,125 @@ class ctable(object):
                         dtype_list)
 
         return ct_agg
+
+
+# groupby helper functions
+def factorize_groupby_cols(ctable_, groupby_cols):
+    # first check if the factorized arrays already exist unless we need to refresh the cache
+    factor_list = []
+    values_list = []
+
+    # factorize the groupby columns
+    for col in groupby_cols:
+
+        cached = False
+        col_rootdir = ctable_[col].rootdir
+        if col_rootdir:
+            col_factor_rootdir = col_rootdir + '.factor'
+            col_values_rootdir = col_rootdir + '.values'
+            if os.path.exists(col_factor_rootdir):
+                cached = True
+                col_factor_carray = carray_ext.carray(rootdir=col_factor_rootdir, mode='r')
+                col_values_carray = carray_ext.carray(rootdir=col_values_rootdir, mode='r')
+
+        if not cached:
+            col_factor_carray, values = carray_ext.factorize(ctable_[col])
+            col_values_carray = carray_ext.carray(values.values(), dtype=ctable_[col].dtype)
+
+        factor_list.append(col_factor_carray)
+        values_list.append(col_values_carray)
+
+    return factor_list, values_list
+
+
+def make_group_index(factor_list, values_list, array_length):
+    # create unique groups for groupby loop
+
+    if len(factor_list) == 0:
+        # no columns to groupby over, so directly aggregate the measure columns to 1 total
+        factor_carray = np.zeros(array_length, dtype='int64')
+        values = ['Total']
+
+    elif len(factor_list) == 1:
+        # single column groupby, the groupby output column here is 1:1 to the values
+        factor_carray = factor_list[0]
+        values = values_list[0]
+
+    else:
+        # multi column groupby
+        # nb: this might also be cached in the future
+
+        # first combine the factorized columns to single values
+        factor_set = {x: y for x, y in zip(groupby_cols, factor_list)}
+
+        # create a numexpr expression that calculates the place on a cartesian join index
+        eval_str = ''
+        previous_value = 1
+        for col, values in zip(reversed(groupby_cols), reversed(values_list)):
+            if eval_str:
+                eval_str += ' + '
+            eval_str += str(previous_value) + '*' + col
+            previous_value *= len(values)
+
+        # calculate the cartesian group index for each row
+        factor_input = bcolz.eval(eval_str, user_dict=factor_set)
+
+        # now factorize the unique groupby combinations
+        factor_carray, values = carray_ext.factorize(factor_input)
+
+    return factor_carray, len(values)
+
+
+def create_agg_ctable(ctable_, groupby_cols, agg_list, rootdir):
+    # create output table
+    dtype_list = []
+    for col in groupby_cols:
+        dtype_list.append((col, ctable_[col].dtype))
+
+    agg_cols = []
+    agg_ops = []
+    op_translation = {
+        'sum': 1,
+        'sum_na': 2
+        }
+
+    for agg_info in agg_list:
+
+        if not isinstance(agg_info, list):
+            # straight forward sum (a ['m1', 'm2', ...] parameter)
+            output_col = agg_info
+            input_col = agg_info
+            agg_op = 1
+        else:
+            # input/output settings [['mnew1', 'm1'], ['mnew2', 'm2], ...]
+            output_col = agg_info[0]
+            input_col = agg_info[1]
+            if len(agg_info) == 2:
+                agg_op = 1
+            else:
+                # input/output settings [['mnew1', 'm1', 'sum'], ['mnew2', 'm1, 'avg'], ...]
+                agg_op = agg_info[2]
+                if agg_op not in op_translation:
+                    raise NotImplementedError('Unknown Aggregation Type: ' + unicode(agg_op))
+                agg_op = op_translation[agg_op]
+
+        col_dtype = ctable_[input_col].dtype
+        # TODO: check if the aggregation columns is numeric
+        # NB: we could build a concatenation for strings like pandas, but I would really prefer to see that as a
+        # separate operation
+
+        # save output
+        agg_cols.append(output_col)
+        agg_ops.append((input_col, agg_op))
+        dtype_list.append((output_col, col_dtype))
+
+    # create aggregation table
+    ct_agg = bcolz.ctable(
+        np.zeros(0, dtype_list),
+        expectedlen=nr_groups,
+        rootdir=rootdir)
+
+    return ct_agg, dtype_list, agg_ops
 
 
 # Local Variables:
