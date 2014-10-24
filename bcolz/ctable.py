@@ -1312,9 +1312,9 @@ class ctable(object):
 
         factor_list, values_list = factorize_groupby_cols(self, groupby_cols)
 
-        factor_carray, nr_groups = make_group_index(factor_list, values_list, len(self))
+        factor_carray, nr_groups = make_group_index(factor_list, values_list, groupby_cols, len(self))
 
-        ct_agg, dtype_list, agg_ops = create_agg_ctable(self, groupby_cols, agg_list, rootdir)
+        ct_agg, dtype_list, agg_ops = create_agg_ctable(self, groupby_cols, agg_list, nr_groups, rootdir)
 
         # perform aggregation
         carray_ext.aggregate_groups(self,
@@ -1357,11 +1357,11 @@ def factorize_groupby_cols(ctable_, groupby_cols):
     return factor_list, values_list
 
 
-def make_group_index(factor_list, values_list, array_length):
+def make_group_index(factor_list, values_list, groupby_cols, array_length):
     # create unique groups for groupby loop
 
     if len(factor_list) == 0:
-        # no columns to groupby over, so directly aggregate the measure columns to 1 total
+        # no columns to groupby over, so directly aggregate the measure columns to 1 total (index 0/zero)
         factor_carray = np.zeros(array_length, dtype='int64')
         values = ['Total']
 
@@ -1395,7 +1395,7 @@ def make_group_index(factor_list, values_list, array_length):
     return factor_carray, len(values)
 
 
-def create_agg_ctable(ctable_, groupby_cols, agg_list, rootdir):
+def create_agg_ctable(ctable_, groupby_cols, agg_list, nr_groups, rootdir):
     # create output table
     dtype_list = []
     for col in groupby_cols:
