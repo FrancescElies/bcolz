@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import contextlib, time
 
+# -- Context manager --
 g_elapsed = 0
 @contextlib.contextmanager
 def ctime(label=""):
@@ -17,6 +18,8 @@ def ctime(label=""):
     g_elapsed = time.time() - t
     print '--> ', label, round(g_elapsed, 3), "sec\n"
 
+
+# -- Common inputs for groupby --
 projects = [
 {'a1': 'build roads',  'a2': 'CA', 'a3': 2, 'm1':   1, 'm2':  2, 'm3':    3.2},
 {'a1': 'fight crime',  'a2': 'IL', 'a3': 1, 'm1':   2, 'm2':  3, 'm3':    4.1},
@@ -28,45 +31,48 @@ projects = [
 {'a1': 'help farmers', 'a2': 'AR', 'a3': 3, 'm1': 128, 'm2': 129, 'm3': 130.9}
 ]
 
+N = int(1e6)
 groupby_cols = ['a1', 'a2', 'a3']
+agg_list = ['m1', 'm2']
 
-df = pd.DataFrame(projects * int(1e6))
-print 'reference\n', df.groupby(groupby_cols, sort=True).sum()
 
-with ctime("pandas"):
+# -- Pandas --
+df = pd.DataFrame(projects * N)
+
+print 'reference\n', df.groupby(groupby_cols, sort=True)[agg_list].sum()
+with ctime("Pandas groupby"):
     df.groupby(groupby_cols, sort=True).sum()
-elapsed_pandas = g_elapsed
-#-----------
 
+elapsed_pandas = g_elapsed
+
+# -- Bcolz --
 prefix = 'bcolz-'
 rootdir = tempfile.mkdtemp(prefix=prefix)
-# folder should be emtpy
-os.rmdir(rootdir)
+os.rmdir(rootdir) # folder should be emtpy
 fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
 fact_bcolz.rootdir
 self = fact_bcolz
 
 # this caches the factorizations on-disk directly in the rootdir
-with ctime("cache"):
+with ctime("Bcolz caching"):
     fact_bcolz.cache_factor(groupby_cols, refresh=True) 
+
 # does the first 3 parts of the groupby, see the code
-print fact_bcolz.groupby(groupby_cols, {})
+print fact_bcolz.groupby(groupby_cols, agg_list)
+with ctime("Bcolz groupby"):
+    fact_bcolz.groupby(groupby_cols, agg_list)
 
-
-
-with ctime("bcolz"):
-    fact_bcolz.groupby(groupby_cols, {})
 elapsed_bcolz = g_elapsed
 
 print elapsed_bcolz / elapsed_pandas, 'x times slower than pandas'
 
-# %timeit df.groupby(groupby_cols, sort=True).sum()
-# %timeit fact_bcolz.cache_factor(groupby_cols, refresh=True) 
-# %timeit fact_bcolz.groupby(groupby_cols, {})
+# -- test speed in Ipython --
+# %timeit fact_bcolz.groupby(['a1', 'a2', 'a3'], ['m1', 'm2'])
+# %timeit df.groupby(['a1', 'a2', 'a3'], as_index=False)['m1', 'm2'].sum()
+
 
 # import cytoolz
 # cytoolz.groupby(lambda x: (x[0], x[1], x[2]), fact_bcolz.iter())
 # %timeit cytoolz.groupby(lambda x: (x[0], x[1], x[2]), fact_bcolz.iter())
-# shutil.rmtree(rootdir)
 
-
+shutil.rmtree(rootdir)
