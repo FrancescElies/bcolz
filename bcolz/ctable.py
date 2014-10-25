@@ -1286,7 +1286,7 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
-    def groupby(self, groupby_cols, agg_list, boolarr=None, rootdir=None):
+    def groupby(self, groupby_cols, agg_list, bool_arr=None, rootdir=None):
         """
         Aggregate the ctable
 
@@ -1312,18 +1312,20 @@ class ctable(object):
 
         factor_list, values_list = factorize_groupby_cols(self, groupby_cols)
 
-        factor_carray, nr_groups = make_group_index(factor_list, values_list, groupby_cols, len(self))
+        factor_carray, nr_groups, skip_key = \
+            make_group_index(factor_list, values_list, groupby_cols, len(self), bool_arr)
 
         ct_agg, dtype_list, agg_ops = create_agg_ctable(self, groupby_cols, agg_list, nr_groups, rootdir)
 
         # perform aggregation
         carray_ext.aggregate_groups(self,
-                        ct_agg,
-                        nr_groups,
-                        factor_carray,
-                        groupby_cols,
-                        agg_ops,
-                        dtype_list)
+                                    ct_agg,
+                                    nr_groups,
+                                    skip_key,
+                                    factor_carray,
+                                    groupby_cols,
+                                    agg_ops,
+                                    dtype_list)
 
         return ct_agg
 
@@ -1357,7 +1359,7 @@ def factorize_groupby_cols(ctable_, groupby_cols):
     return factor_list, values_list
 
 
-def make_group_index(factor_list, values_list, groupby_cols, array_length):
+def make_group_index(factor_list, values_list, groupby_cols, array_length, bool_arr):
     # create unique groups for groupby loop
 
     if len(factor_list) == 0:
@@ -1392,7 +1394,27 @@ def make_group_index(factor_list, values_list, groupby_cols, array_length):
         # now factorize the unique groupby combinations
         factor_carray, values = carray_ext.factorize(factor_input)
 
-    return factor_carray, len(values)
+    skip_key = None
+
+    if bool_arr is not None:
+        # make all non relevant combinations -1
+        factor_carray = bcolz.eval('(factor + 1) * bool - 1', user_dict={'factor': factor_carray, 'bool': bool_arr})
+        # now check how many unique values there are left
+        factor_carray, values = carray_ext.factorize(factor_carray)
+        # values might contain one value too much (-1) (no direct lookup possible because values is a reversed dict)
+        filter_check = [key for key, value in values.iteritems() if value == -1]
+        if filter_check:
+            skip_key = filter_check[0]
+
+    # using nr_groups as a total length might be one one off due to the skip_key
+    # (skipping a row in aggregation)
+    # but that is okay normally
+    nr_groups = len(values)
+    if skip_key is None:
+        # if we shouldn't skip a row, set it at the first row after the total number of groups
+        skip_key = nr_groups
+
+    return factor_carray, nr_groups, skip_key
 
 
 def create_agg_ctable(ctable_, groupby_cols, agg_list, nr_groups, rootdir):

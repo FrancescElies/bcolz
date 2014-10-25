@@ -3023,6 +3023,7 @@ def agg_sum(iter_):
 def aggregate_groups(ct_input,
                         ct_agg,
                         npy_uint64 nr_groups,
+                        npy_uint64 skip_key,
                         carray factor_carray,
                         list groupby_cols,
                         list output_agg_ops,
@@ -3039,6 +3040,11 @@ def aggregate_groups(ct_input,
     current_start = 0
 
     for k in range(nr_groups):
+
+        # check if we have to skip this row (due to bool array filtering)
+        if k == skip_key:
+            continue
+
         # create the index for the group
         bool_arr = bcolz.eval('ca == ' + str(k), user_dict={'ca': factor_carray})
 
