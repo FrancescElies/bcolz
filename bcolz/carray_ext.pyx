@@ -3067,6 +3067,35 @@ def aggregate_groups(ct_input,
 
         ct_agg.append(tmp)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef carray_is_in(carray col, set value_set, np.ndarray boolarr, bint reverse):
+    """
+    TEMPORARY WORKAROUND till numexpr support in list operations
+
+    Update a boolean array with checks whether the values of a column (col) are in a set (value_set)
+    Reverse means "not in" functionality
+
+    For the 0d array work around, see https://github.com/Blosc/bcolz/issues/61
+
+    :param col:
+    :param value_set:
+    :param boolarr:
+    :param reverse:
+    :return:
+    """
+    cdef Py_ssize_t i
+    i = 0
+    if not reverse:
+        for val in col.iter():
+            if val not in value_set:
+                boolarr[i] = False
+            i += 1
+    else:
+        for val in col.iter():
+            if val in value_set:
+                boolarr[i] = False
+            i += 1
 
 ## Local Variables:
 ## mode: python

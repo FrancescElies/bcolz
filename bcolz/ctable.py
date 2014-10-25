@@ -1469,6 +1469,152 @@ def create_agg_ctable(ctable_, groupby_cols, agg_list, nr_groups, rootdir):
     return ct_agg, dtype_list, agg_ops
 
 
+def where_terms(self, term_list, outcols=None, limit=None, skip=0):
+    """
+    TEMPORARY WORKAROUND TILL NUMEXPR WORKS WITH IN
+    where_terms(term_list, outcols=None, limit=None, skip=0)
+
+    Iterate over rows where `term_list` is true.
+    A terms list has a [(col, operator, value), ..] construction.
+    Eg. [('sales', '>', 2), ('state', 'in', ['IL', 'AR'])]
+
+    :param term_list:
+    :param outcols:
+    :param limit:
+    :param skip:
+    :return: :raise ValueError:
+    """
+
+    if type(term_list) not in [list, set, tuple]:
+        raise ValueError("Only term lists are supported")
+
+    eval_string = ''
+    eval_list = []
+
+    for term in term_list:
+        filter_col = term[0]
+        filter_operator = term[1].lower()
+        filter_value = term[2]
+
+        if filter_operator not in ['in', 'not in']:
+            # direct filters should be added to the eval_string
+
+            # add and logic if not the first term
+            if eval_string:
+                eval_string += ' & '
+
+            eval_string += filter_col + ' ' \
+                           + filter_operator + ' ' \
+                           + str(filter_value)
+
+        elif filter_operator in ['in', 'not in']:
+            # Check input
+            if type(filter_value) not in [list, set, tuple]:
+                raise ValueError("In selections need lists, sets or tuples")
+
+            if len(filter_value) < 1:
+                raise ValueError("A value list needs to have values")
+
+            elif len(filter_value) == 1:
+                # handle as eval
+                # add and logic if not the first term
+                if eval_string:
+                    eval_string += ' & '
+
+                if filter_operator == 'not in':
+                    filter_operator = '!='
+                else:
+                    filter_operator = '=='
+
+                eval_string += filter_col + ' ' + \
+                               filter_operator + ' '
+
+                filter_value = filter_value[0]
+
+                if type(filter_value) == str:
+                    filter_value = '"' + filter_value + '"'
+                else:
+                    filter_value = str(filter_value)
+
+                eval_string += filter_value
+
+            else:
+
+                if type(filter_value) in [list, tuple]:
+                    filter_value = set(filter_value)
+
+                eval_list.append(
+                    (filter_col, filter_operator, filter_value)
+                )
+        else:
+            raise ValueError(
+                "Input not correctly formatted for eval or list filtering"
+            )
+
+    # (1) Evaluate terms in eval
+    # return eval_string, eval_list
+    if eval_string:
+        boolarr = self.eval(eval_string)
+        if eval_list:
+            # convert to numpy array for array_is_in
+            boolarr = boolarr[:]
+    else:
+        boolarr = np.ones(self.size, dtype=bool)
+
+    # (2) Evaluate other terms like 'in' or 'not in' ...
+    for term in eval_list:
+
+        name = term[0]
+        col = self.cols[name]
+
+        operator = term[1]
+        if operator.lower() == 'not in':
+            reverse = True
+        elif operator.lower() == 'in':
+            reverse = False
+        else:
+            raise ValueError(
+                "Input not correctly formatted for list filtering"
+            )
+
+        value_set = set(term[2])
+
+        carray_ext.carray_is_in(col, value_set, boolarr, reverse)
+
+    if eval_list:
+        # convert boolarr back to carray
+        boolarr = carray(boolarr)
+
+    if outcols is None:
+        outcols = self.names
+
+    # Check outcols
+    if outcols is None:
+        outcols = self.names
+    else:
+        if type(outcols) not in (list, tuple, str):
+            raise ValueError("only list/str is supported for outcols")
+        # Check name validity
+        nt = namedtuple('_nt', outcols, verbose=False)
+        outcols = list(nt._fields)
+        if set(outcols) - set(self.names + ['nrow__']) != set():
+            raise ValueError("not all outcols are real column names")
+
+    # Get iterators for selected columns
+    icols, dtypes = [], []
+    for name in outcols:
+        if name == "nrow__":
+            icols.append(boolarr.wheretrue(limit=limit, skip=skip))
+            dtypes.append((name, np.int_))
+        else:
+            col = self.cols[name]
+            icols.append(col.where(boolarr, limit=limit, skip=skip))
+            dtypes.append((name, col.dtype))
+    dtype = np.dtype(dtypes)
+
+    return self._iter(icols, dtype)
+
+
 # Local Variables:
 # mode: python
 # tab-width: 4
