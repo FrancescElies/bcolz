@@ -1469,7 +1469,7 @@ def create_agg_ctable(ctable_, groupby_cols, agg_list, nr_groups, rootdir):
     return ct_agg, dtype_list, agg_ops
 
 
-def where_terms(self, term_list, outcols=None, limit=None, skip=0):
+def where_terms(ctable_, term_list):
     """
     TEMPORARY WORKAROUND TILL NUMEXPR WORKS WITH IN
     where_terms(term_list, outcols=None, limit=None, skip=0)
@@ -1554,18 +1554,18 @@ def where_terms(self, term_list, outcols=None, limit=None, skip=0):
     # (1) Evaluate terms in eval
     # return eval_string, eval_list
     if eval_string:
-        boolarr = self.eval(eval_string)
+        boolarr = ctable_.eval(eval_string)
         if eval_list:
             # convert to numpy array for array_is_in
             boolarr = boolarr[:]
     else:
-        boolarr = np.ones(self.size, dtype=bool)
+        boolarr = np.ones(ctable_.size, dtype=bool)
 
     # (2) Evaluate other terms like 'in' or 'not in' ...
     for term in eval_list:
 
         name = term[0]
-        col = self.cols[name]
+        col = ctable_.cols[name]
 
         operator = term[1]
         if operator.lower() == 'not in':
@@ -1585,34 +1585,7 @@ def where_terms(self, term_list, outcols=None, limit=None, skip=0):
         # convert boolarr back to carray
         boolarr = carray(boolarr)
 
-    if outcols is None:
-        outcols = self.names
-
-    # Check outcols
-    if outcols is None:
-        outcols = self.names
-    else:
-        if type(outcols) not in (list, tuple, str):
-            raise ValueError("only list/str is supported for outcols")
-        # Check name validity
-        nt = namedtuple('_nt', outcols, verbose=False)
-        outcols = list(nt._fields)
-        if set(outcols) - set(self.names + ['nrow__']) != set():
-            raise ValueError("not all outcols are real column names")
-
-    # Get iterators for selected columns
-    icols, dtypes = [], []
-    for name in outcols:
-        if name == "nrow__":
-            icols.append(boolarr.wheretrue(limit=limit, skip=skip))
-            dtypes.append((name, np.int_))
-        else:
-            col = self.cols[name]
-            icols.append(col.where(boolarr, limit=limit, skip=skip))
-            dtypes.append((name, col.dtype))
-    dtype = np.dtype(dtypes)
-
-    return self._iter(icols, dtype)
+    return boolarr
 
 
 # Local Variables:
