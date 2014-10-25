@@ -3069,7 +3069,7 @@ def aggregate_groups(ct_input,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef carray_is_in(carray col, set value_set, np.ndarray boolarr, bint reverse):
+cpdef carray_is_in(carray col, set value_set, ndarray boolarr, bint reverse):
     """
     TEMPORARY WORKAROUND till numexpr support in list operations
 
