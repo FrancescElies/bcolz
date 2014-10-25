@@ -1362,7 +1362,7 @@ def make_group_index(factor_list, values_list, groupby_cols, array_length):
 
     if len(factor_list) == 0:
         # no columns to groupby over, so directly aggregate the measure columns to 1 total (index 0/zero)
-        factor_carray = np.zeros(array_length, dtype='int64')
+        factor_carray = bcolz.zeros(array_length, dtype='int64')
         values = ['Total']
 
     elif len(factor_list) == 1:
