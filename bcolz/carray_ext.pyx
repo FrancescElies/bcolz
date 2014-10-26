@@ -3080,7 +3080,7 @@ def aggregate_groups_by_iter(ct_input,
                         list dtype_list
                         ):
     cdef:
-        npy_uint64 k, n, total_len
+        npy_uint64 k, n
         npy_float64 v_cum
         int agg_op
         char *col
@@ -3088,14 +3088,13 @@ def aggregate_groups_by_iter(ct_input,
         ndarray total
 
     total = np.zeros(nr_groups, dtype_list)
-    total_len = len(ct_input)
 
     n = 0
     for col in groupby_cols:
         factor_iter = factor_carray.iter()
         for value in ct_input[col].iter():
             k = factor_iter.next()
-            if k >= 0:
+            if k != skip_key:
                 total[k][n] = value
         n += 1
 
@@ -3104,13 +3103,14 @@ def aggregate_groups_by_iter(ct_input,
         if agg_op == 1:  # sum
             for value in ct_input[col].iter():
                 k = factor_iter.next()
-                if k >= 0:
+                if k != skip_key:
                     total[k][n] += value
         elif agg_op == 2:  # sum_na
             for value in ct_input[col].iter():
                 k = factor_iter.next()
-                if k >= 0 and value == value:
+                if k != skip_key and value == value:
                     total[k][n] += value
+        n += 1
 
     ct_agg.append(total)
 

@@ -1318,7 +1318,7 @@ class ctable(object):
         ct_agg, dtype_list, agg_ops = create_agg_ctable(self, groupby_cols, agg_list, nr_groups, rootdir)
 
         # perform aggregation
-        carray_ext.aggregate_groups(self,
+        carray_ext.aggregate_groups_by_iter(self,
                                     ct_agg,
                                     nr_groups,
                                     skip_key,
