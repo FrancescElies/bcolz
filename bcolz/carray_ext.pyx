@@ -3067,6 +3067,54 @@ def aggregate_groups(ct_input,
 
         ct_agg.append(tmp)
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def aggregate_groups_by_iter(ct_input,
+                        ct_agg,
+                        npy_uint64 nr_groups,
+                        npy_uint64 skip_key,
+                        carray factor_carray,
+                        list groupby_cols,
+                        list output_agg_ops,
+                        list dtype_list
+                        ):
+    cdef:
+        npy_uint64 k, n, total_len
+        npy_float64 v_cum
+        int agg_op
+        char *col
+        carray bool_arr
+        ndarray total
+
+    total = np.zeros(nr_groups, dtype_list)
+    total_len = len(ct_input)
+
+    n = 0
+    for col in groupby_cols:
+        factor_iter = factor_carray.iter()
+        for value in ct_input[col].iter():
+            k = factor_iter.next()
+            if k >= 0:
+                total[k][n] = value
+        n += 1
+
+    for col, agg_op in output_agg_ops:
+        factor_iter = factor_carray.iter()
+        if agg_op == 1:  # sum
+            for value in ct_input[col].iter():
+                k = factor_iter.next()
+                if k >= 0:
+                    total[k][n] += value
+        elif agg_op == 2:  # sum_na
+            for value in ct_input[col].iter():
+                k = factor_iter.next()
+                if k >= 0 and value == value:
+                    total[k][n] += value
+
+    ct_agg.append(total)
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef carray_is_in(carray col, set value_set, ndarray boolarr, bint reverse):
