@@ -56,7 +56,7 @@ df = pd.DataFrame(projects)
 df.a3 = df.a3.astype(np.int32)
 df.m1 = df.m1.astype(np.int32)
 
-print 'reference\n', df.groupby(groupby_cols, sort=True)[agg_list].sum()
+# print 'reference\n', df.groupby(groupby_cols, sort=True)[agg_list].sum()
 with ctime("Pandas groupby"):
     df.groupby(groupby_cols, sort=True).sum()
 
@@ -74,13 +74,21 @@ with ctime("Bcolz caching"):
     fact_bcolz.cache_factor(groupby_cols, refresh=True) 
 
 # does the first 3 parts of the groupby, see the code
-print fact_bcolz.groupby(groupby_cols, agg_list)
-with ctime("Bcolz groupby"):
-    fact_bcolz.groupby(groupby_cols, agg_list)
+# print fact_bcolz.groupby(groupby_cols, agg_list, method=2)
+with ctime("Bcolz groupby, method 2"):
+    fact_bcolz.groupby(groupby_cols, agg_list, method=2)
+elapsed_bcolz = g_elapsed
+
+print round(elapsed_bcolz / elapsed_pandas, 3), 'meth2 x times slower than pandas'
+
+# does the first 3 parts of the groupby, see the code
+# print fact_bcolz.groupby(groupby_cols, agg_list, method=1)
+with ctime("Bcolz groupby, method 1"):
+    fact_bcolz.groupby(groupby_cols, agg_list, method=1)
 
 elapsed_bcolz = g_elapsed
 
-print round(elapsed_bcolz / elapsed_pandas, 3), 'x times slower than pandas'
+print round(elapsed_bcolz / elapsed_pandas, 3), 'meth1 x times slower than pandas'
 
 # -- test speed in Ipython --
 # %timeit fact_bcolz.groupby(['a1', 'a2', 'a3'], ['m1', 'm2'])
