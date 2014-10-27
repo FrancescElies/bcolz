@@ -3118,7 +3118,10 @@ def aggregate_groups_by_iter(ct_input,
                 k = factor_iter.next()
                 if k != skip_key and value == value:
                     agg_array[k] += value
-        total.append(agg_array)
+        if ct_agg[col].dtype != np.float64:
+            total.append(agg_array.astype(ct_agg[col].dtype))
+        else:
+            total.append(agg_array)
         n += 1
 
     ct_agg.append(total)
