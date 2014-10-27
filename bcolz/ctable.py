@@ -1286,7 +1286,7 @@ class ctable(object):
                                                   rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
-    def groupby(self, groupby_cols, agg_list, bool_arr=None, rootdir=None, method=1):
+    def groupby(self, groupby_cols, agg_list, bool_arr=None, rootdir=None, method=3):
         """
         Aggregate the ctable
 
