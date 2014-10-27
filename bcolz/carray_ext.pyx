@@ -3403,41 +3403,33 @@ cdef groupby_value(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_s
 
     return out_buffer
 
-cpdef aggregate_groups_by_iter_2(ct_input,
+def aggregate_groups_by_iter_2(ct_input,
                         ct_agg,
                         npy_uint64 nr_groups,
                         npy_uint64 skip_key,
                         carray factor_carray,
-                        list groupby_cols,
-                        list output_agg_ops,
-                        list dtype_list
+                        groupby_cols,
+                        output_agg_ops,
+                        dtype_list
                         ):
-    cdef:
-        npy_uint64 k, n
-        npy_float64 v_cum
-        int agg_op
-        char *col
-        carray bool_arr
-        ndarray group_array
-        ndarray[npy_float64] agg_array
-        list total
-
     total = []
 
     for col in groupby_cols:
-        group_array = groupby_value(ct_input[col], factor_carray, nr_groups, skip_key)
-        total.append(group_array)
+        total.append(groupby_value(ct_input[col], factor_carray, nr_groups, skip_key))
 
     for col, agg_op in output_agg_ops:
         # TODO: input vs output column
+        print col
         col_dtype = ct_agg[col].dtype
+        print col_dtype
         if col_dtype == np.float64:
-            agg_array = sum_float64(ct_input[col], factor_carray, nr_groups, skip_key)
+            print 'float'
+            total.append(sum_float64(ct_input[col], factor_carray, nr_groups, skip_key))
         elif col_dtype == np.int64:
-            agg_array = sum_int64(ct_input[col], factor_carray, nr_groups, skip_key)
+            print 'int'
+            total.append(sum_int64(ct_input[col], factor_carray, nr_groups, skip_key))
         else:
             raise NotImplementedError('Column dtype not supported for aggregation yet (only int64 & float64)')
-        total.append(agg_array)
 
     ct_agg.append(total)
 
