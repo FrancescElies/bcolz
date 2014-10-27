@@ -1,3 +1,6 @@
+# cython: profile=True
+
+
 #########################################################################
 #
 #       License: BSD
@@ -3068,6 +3071,7 @@ def aggregate_groups(ct_input,
         ct_agg.append(tmp)
 
 
+import numpy
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def aggregate_groups_by_iter(ct_input,
@@ -3085,31 +3089,39 @@ def aggregate_groups_by_iter(ct_input,
         int agg_op
         char *col
         carray bool_arr
-        ndarray total
+        ndarray group_array
+        ndarray[npy_float64] agg_array
+        list total
 
-    total = np.zeros(nr_groups, dtype_list)
+    total = []
 
     n = 0
     for col in groupby_cols:
+        group_array = np.zeros(nr_groups, dtype=ct_agg[col].dtype)
+        start = datetime.datetime.now()
         factor_iter = factor_carray.iter()
         for value in ct_input[col].iter():
             k = factor_iter.next()
             if k != skip_key:
-                total[k][n] = value
+                group_array[k] = value
+        total.append(group_array)
         n += 1
 
     for col, agg_op in output_agg_ops:
+        agg_array = np.zeros(nr_groups, dtype=np.float64)
+        start = datetime.datetime.now()
         factor_iter = factor_carray.iter()
         if agg_op == 1:  # sum
             for value in ct_input[col].iter():
                 k = factor_iter.next()
                 if k != skip_key:
-                    total[k][n] += value
+                    agg_array[k] += value
         elif agg_op == 2:  # sum_na
             for value in ct_input[col].iter():
                 k = factor_iter.next()
                 if k != skip_key and value == value:
-                    total[k][n] += value
+                    agg_array[k] += value
+        total.append(agg_array)
         n += 1
 
     ct_agg.append(total)
