@@ -3419,14 +3419,11 @@ def aggregate_groups_by_iter_2(ct_input,
 
     for col, agg_op in output_agg_ops:
         # TODO: input vs output column
-        print col
         col_dtype = ct_agg[col].dtype
         print col_dtype
         if col_dtype == np.float64:
-            print 'float'
             total.append(sum_float64(ct_input[col], factor_carray, nr_groups, skip_key))
         elif col_dtype == np.int64:
-            print 'int'
             total.append(sum_int64(ct_input[col], factor_carray, nr_groups, skip_key))
         else:
             raise NotImplementedError('Column dtype not supported for aggregation yet (only int64 & float64)')
