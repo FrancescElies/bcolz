@@ -3068,24 +3068,24 @@ def aggregate_groups(ct_input,
         ct_agg.append(tmp)
 
 
-cdef _loop_carray(carray carray_):
+def _loop_carray(carray carray_):
     cdef:
-        ndarray out_buffer
-        ndarray in_buffer
+        ndarray buffer
         Py_ssize_t i, chunklen
 
+    buffer = np.empty(chunklen, dtype=carray_.dtype)
     chunklen = carray_.chunklen
     for i in range(carray_.nchunks):
         chunk_ = carray_.chunks[i]
         # decompress into in_buffer
-        chunk_._getitem(0, chunklen, in_buffer.data)
+        chunk_._getitem(0, chunklen, buffer.data)
         for i in range(chunklen):
-            yield in_buffer[i]
+            yield buffer[i]
 
     leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
     if leftover_elements > 0:
         for i in range(leftover_elements):
-            yield in_buffer[i]
+            yield buffer[i]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -3127,12 +3127,12 @@ def aggregate_groups_by_iter(ct_input,
         start = datetime.datetime.now()
         factor_iter = factor_carray.iter()
         if agg_op == 1:  # sum
-            for value in ct_input[col].iter():
+            for value in _loop_carray(ct_input[col]):
                 k = factor_iter.next()
                 if k != skip_key:
                     agg_array[k] += value
         elif agg_op == 2:  # sum_na
-            for value in ct_input[col].iter():
+            for value in _loop_carray(ct_input[col]):
                 k = factor_iter.next()
                 if k != skip_key and value == value:
                     agg_array[k] += value
