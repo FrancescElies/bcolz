@@ -3420,7 +3420,6 @@ def aggregate_groups_by_iter_2(ct_input,
     for col, agg_op in output_agg_ops:
         # TODO: input vs output column
         col_dtype = ct_agg[col].dtype
-        print col_dtype
         if col_dtype == np.float64:
             total.append(sum_float64(ct_input[col], factor_carray, nr_groups, skip_key))
         elif col_dtype == np.int64:
