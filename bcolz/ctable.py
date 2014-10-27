@@ -1336,7 +1336,15 @@ class ctable(object):
                                     groupby_cols,
                                     agg_ops,
                                     dtype_list)
-
+        elif method == 3:
+            carray_ext.aggregate_groups_by_iter_2(self,
+                                    ct_agg,
+                                    nr_groups,
+                                    skip_key,
+                                    factor_carray,
+                                    groupby_cols,
+                                    agg_ops,
+                                    dtype_list)
         return ct_agg
 
 

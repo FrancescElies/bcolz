@@ -2768,9 +2768,8 @@ def factorize_int64(carray carray_, carray labels=None):
     chunklen = carray_.chunklen
     if labels is None:
         labels = carray([], dtype='int64', expectedlen=n)
-    # in-buffer isn't typed, because cython doesn't support string arrays (?)
     out_buffer = np.empty(chunklen, dtype='uint64')
-    in_buffer = np.empty(chunklen, dtype=carray_.dtype)
+    in_buffer = np.empty(chunklen, dtype='int64')
     table = kh_init_int64()
 
     for i in range(carray_.nchunks):
@@ -2811,7 +2810,7 @@ def factorize_int64(carray carray_, carray labels=None):
 cdef void _factorize_int32_helper(Py_ssize_t iter_range,
                        Py_ssize_t allocation_size,
                        ndarray[npy_int32] in_buffer,
-                       ndarray[npy_uint32] out_buffer,
+                       ndarray[npy_uint64] out_buffer,
                        kh_int32_t *table,
                        Py_ssize_t * count,
                        dict reverse,
@@ -2844,7 +2843,7 @@ def factorize_int32(carray carray_, carray labels=None):
         Py_ssize_t n, i, count, chunklen, leftover_elements
         dict reverse
         ndarray[npy_int32] in_buffer
-        ndarray[npy_uint32] out_buffer
+        ndarray[npy_uint64] out_buffer
         kh_int32_t *table
 
     count = 0
@@ -2856,8 +2855,8 @@ def factorize_int32(carray carray_, carray labels=None):
     if labels is None:
         labels = carray([], dtype='int32', expectedlen=n)
     # in-buffer isn't typed, because cython doesn't support string arrays (?)
-    out_buffer = np.empty(chunklen, dtype='uint32')
-    in_buffer = np.empty(chunklen, dtype=carray_.dtype)
+    out_buffer = np.empty(chunklen, dtype='uint64')
+    in_buffer = np.empty(chunklen, dtype='int32')
     table = kh_init_int32()
 
     for i in range(carray_.nchunks):
@@ -2873,7 +2872,7 @@ def factorize_int32(carray carray_, carray labels=None):
                         reverse,
                         )
         # compress out_buffer into labels
-        labels.append(out_buffer.astype(np.int32))
+        labels.append(out_buffer.astype(np.int64))
 
     leftover_elements = cython.cdiv(carray_.leftover, carray_.atomsize)
     if leftover_elements > 0:
@@ -2887,7 +2886,7 @@ def factorize_int32(carray carray_, carray labels=None):
                           )
 
     # compress out_buffer into labels
-    labels.append(out_buffer[:leftover_elements].astype(np.int32))
+    labels.append(out_buffer[:leftover_elements].astype(np.int64))
 
     kh_destroy_int32(table)
 
@@ -2931,7 +2930,7 @@ def factorize_float64(carray carray_, carray labels=None):
         chunk chunk_
         Py_ssize_t n, i, count, chunklen, leftover_elements
         dict reverse
-        ndarray in_buffer
+        ndarray[npy_float64] in_buffer
         ndarray[npy_uint64] out_buffer
         kh_float64_t *table
 
@@ -2945,7 +2944,7 @@ def factorize_float64(carray carray_, carray labels=None):
         labels = carray([], dtype='float64', expectedlen=n)
     # in-buffer isn't typed, because cython doesn't support string arrays (?)
     out_buffer = np.empty(chunklen, dtype='uint64')
-    in_buffer = np.empty(chunklen, dtype=carray_.dtype)
+    in_buffer = np.empty(chunklen, dtype='float64')
     table = kh_init_float64()
 
     for i in range(carray_.nchunks):
@@ -2994,7 +2993,7 @@ def factorize(carray carray_, carray labels=None):
     return labels, reverse
 
 # ---------------------------------------------------------------------------
-# Sorts Section
+# Aggregation Section (old)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def agg_sum_na(iter_):
@@ -3067,14 +3066,14 @@ def aggregate_groups(ct_input,
 
         ct_agg.append(tmp)
 
-
 def _loop_carray(carray carray_):
     cdef:
         ndarray buffer
         Py_ssize_t i, chunklen
 
-    buffer = np.empty(chunklen, dtype=carray_.dtype)
     chunklen = carray_.chunklen
+    buffer = np.empty(chunklen, dtype=carray_.dtype)
+
     for i in range(carray_.nchunks):
         chunk_ = carray_.chunks[i]
         # decompress into in_buffer
@@ -3087,6 +3086,8 @@ def _loop_carray(carray carray_):
         for i in range(leftover_elements):
             yield buffer[i]
 
+# ---------------------------------------------------------------------------
+# Aggregation Section new
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def aggregate_groups_by_iter(ct_input,
@@ -3144,7 +3145,304 @@ def aggregate_groups_by_iter(ct_input,
 
     ct_agg.append(total)
 
+# ---------------------------------------------------------------------------
+# Aggregation Section new v2
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef sum_float64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize_t skip_key):
+    cdef:
+        chunk input_chunk, factor_chunk
+        Py_ssize_t input_chunk_nr, input_chunk_len
+        Py_ssize_t factor_chunk_nr, factor_chunk_len, factor_chunk_row
+        Py_ssize_t current_index, i, factor_total_chunks, leftover_elements
 
+        ndarray[npy_float64] in_buffer
+        ndarray[npy_int64] factor_buffer
+        ndarray[npy_float64] out_buffer
+
+    count = 0
+    ret = 0
+    reverse = {}
+
+    input_chunk_len = ca_input.chunklen
+    in_buffer = np.empty(input_chunk_len, dtype='float64')
+    factor_chunk_len = ca_factor.chunklen
+    factor_total_chunks = ca_factor.nchunks
+    factor_chunk_nr = 0
+    factor_buffer = np.empty(factor_chunk_len, dtype='int64')
+    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+    factor_chunk_row = 0
+    out_buffer = np.zeros(nr_groups, dtype='float64')
+
+    for input_chunk_nr in range(ca_input.nchunks):
+        # fill input buffer
+        input_chunk = ca_input.chunks[input_chunk_nr]
+        input_chunk._getitem(0, input_chunk_len, in_buffer.data)
+
+        # loop through rows
+        for i in range(input_chunk_len):
+
+            # go to next factor buffer if necessary
+            if factor_chunk_row == factor_chunk_len:
+                factor_chunk_nr += 1
+                if factor_chunk_nr < factor_total_chunks:
+                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+                else:
+                    factor_buffer = ca_factor.leftover_array
+                factor_chunk_row = 0
+
+            # retrieve index
+            current_index = factor_buffer[factor_chunk_row]
+            factor_chunk_row += 1
+
+            # update value if it's not an invalid index
+            if current_index != skip_key:
+                out_buffer[current_index] += in_buffer[i]
+
+    leftover_elements = cython.cdiv(ca_input.leftover, ca_input.atomsize)
+    if leftover_elements > 0:
+        # fill input buffer
+        in_buffer = ca_input.leftover_array
+
+        # loop through rows
+        for i in range(leftover_elements):
+
+            # go to next factor buffer if necessary
+            if factor_chunk_row == factor_chunk_len:
+                factor_chunk_nr += 1
+                if factor_chunk_nr < factor_total_chunks:
+                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+                else:
+                    factor_buffer = ca_factor.leftover_array
+                factor_chunk_row = 0
+
+            # retrieve index
+            current_index = factor_buffer[factor_chunk_row]
+            factor_chunk_row += 1
+
+            # update value if it's not an invalid index
+            if current_index != skip_key:
+                out_buffer[current_index] += in_buffer[i]
+
+    # check whether a row has to be removed if it was meant to be skipped
+    if skip_key < nr_groups:
+        np.delete(out_buffer, skip_key)
+
+    return out_buffer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef sum_int64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize_t skip_key):
+    cdef:
+        chunk input_chunk, factor_chunk
+        Py_ssize_t input_chunk_nr, input_chunk_len
+        Py_ssize_t factor_chunk_nr, factor_chunk_len, factor_chunk_row
+        Py_ssize_t current_index, i, factor_total_chunks, leftover_elements
+
+        ndarray[npy_int64] in_buffer
+        ndarray[npy_int64] factor_buffer
+        ndarray[npy_int64] out_buffer
+
+    count = 0
+    ret = 0
+    reverse = {}
+
+    input_chunk_len = ca_input.chunklen
+    in_buffer = np.empty(input_chunk_len, dtype='int64')
+    factor_chunk_len = ca_factor.chunklen
+    factor_total_chunks = ca_factor.nchunks
+    factor_chunk_nr = 0
+    factor_buffer = np.empty(factor_chunk_len, dtype='int64')
+    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+    factor_chunk_row = 0
+    out_buffer = np.zeros(nr_groups, dtype='int64')
+
+    for input_chunk_nr in range(ca_input.nchunks):
+        # fill input buffer
+        input_chunk = ca_input.chunks[input_chunk_nr]
+        input_chunk._getitem(0, input_chunk_len, in_buffer.data)
+
+        # loop through rows
+        for i in range(input_chunk_len):
+
+            # go to next factor buffer if necessary
+            if factor_chunk_row == factor_chunk_len:
+                factor_chunk_nr += 1
+                if factor_chunk_nr < factor_total_chunks:
+                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+                else:
+                    factor_buffer = ca_factor.leftover_array
+                factor_chunk_row = 0
+
+            # retrieve index
+            current_index = factor_buffer[factor_chunk_row]
+            factor_chunk_row += 1
+
+            # update value if it's not an invalid index
+            if current_index != skip_key:
+                out_buffer[current_index] += in_buffer[i]
+
+    leftover_elements = cython.cdiv(ca_input.leftover, ca_input.atomsize)
+    if leftover_elements > 0:
+        # fill input buffer
+        in_buffer = ca_input.leftover_array
+
+        # loop through rows
+        for i in range(leftover_elements):
+
+            # go to next factor buffer if necessary
+            if factor_chunk_row == factor_chunk_len:
+                factor_chunk_nr += 1
+                if factor_chunk_nr < factor_total_chunks:
+                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+                else:
+                    factor_buffer = ca_factor.leftover_array
+                factor_chunk_row = 0
+
+            # retrieve index
+            current_index = factor_buffer[factor_chunk_row]
+            factor_chunk_row += 1
+
+            # update value if it's not an invalid index
+            if current_index != skip_key:
+                out_buffer[current_index] += in_buffer[i]
+
+    # check whether a row has to be removed if it was meant to be skipped
+    if skip_key < nr_groups:
+        np.delete(out_buffer, skip_key)
+
+    return out_buffer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef groupby_value(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize_t skip_key):
+    cdef:
+        chunk input_chunk, factor_chunk
+        Py_ssize_t input_chunk_nr, input_chunk_len
+        Py_ssize_t factor_chunk_nr, factor_chunk_len, factor_chunk_row
+        Py_ssize_t current_index, i, factor_total_chunks, leftover_elements
+
+        ndarray in_buffer
+        ndarray[npy_int64] factor_buffer
+        ndarray out_buffer
+
+    count = 0
+    ret = 0
+    reverse = {}
+
+    input_chunk_len = ca_input.chunklen
+    in_buffer = np.empty(input_chunk_len, dtype=ca_input.dtype)
+    factor_chunk_len = ca_factor.chunklen
+    factor_total_chunks = ca_factor.nchunks
+    factor_chunk_nr = 0
+    factor_buffer = np.empty(factor_chunk_len, dtype='int64')
+    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+    factor_chunk_row = 0
+    out_buffer = np.zeros(nr_groups, dtype=ca_input.dtype)
+
+    for input_chunk_nr in range(ca_input.nchunks):
+
+        # fill input buffer
+        input_chunk = ca_input.chunks[input_chunk_nr]
+        input_chunk._getitem(0, input_chunk_len, in_buffer.data)
+
+        for i in range(input_chunk_len):
+
+            # go to next factor buffer if necessary
+            if factor_chunk_row == factor_chunk_len:
+                factor_chunk_nr += 1
+                if factor_chunk_nr < factor_total_chunks:
+                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+                else:
+                    factor_buffer = ca_factor.leftover_array
+                factor_chunk_row = 0
+
+            # retrieve index
+            current_index = factor_buffer[factor_chunk_row]
+            factor_chunk_row += 1
+
+            # update value if it's not an invalid index
+            if current_index != skip_key:
+                out_buffer[current_index] = in_buffer[i]
+
+    leftover_elements = cython.cdiv(ca_input.leftover, ca_input.atomsize)
+    if leftover_elements > 0:
+        in_buffer = ca_input.leftover_array
+
+        for i in range(leftover_elements):
+
+            # go to next factor buffer if necessary
+            if factor_chunk_row == factor_chunk_len:
+                factor_chunk_nr += 1
+                if factor_chunk_nr < factor_total_chunks:
+                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+                else:
+                    factor_buffer = ca_factor.leftover_array
+                factor_chunk_row = 0
+
+            # retrieve index
+            current_index = factor_buffer[factor_chunk_row]
+            factor_chunk_row += 1
+
+            # update value if it's not an invalid index
+            if current_index != skip_key:
+                out_buffer[current_index] = in_buffer[i]
+
+    # check whether a row has to be fixed
+    if skip_key < nr_groups:
+        np.delete(out_buffer, skip_key)
+
+    return out_buffer
+
+cpdef aggregate_groups_by_iter_2(ct_input,
+                        ct_agg,
+                        npy_uint64 nr_groups,
+                        npy_uint64 skip_key,
+                        carray factor_carray,
+                        list groupby_cols,
+                        list output_agg_ops,
+                        list dtype_list
+                        ):
+    cdef:
+        npy_uint64 k, n
+        npy_float64 v_cum
+        int agg_op
+        char *col
+        carray bool_arr
+        ndarray group_array
+        ndarray[npy_float64] agg_array
+        list total
+
+    total = []
+
+    for col in groupby_cols:
+        group_array = groupby_value(ct_input[col], factor_carray, nr_groups, skip_key)
+        total.append(group_array)
+
+    for col, agg_op in output_agg_ops:
+        # TODO: input vs output column
+        col_dtype = ct_agg[col].dtype
+        if col_dtype == np.float64:
+            agg_array = sum_float64(ct_input[col], factor_carray, nr_groups, skip_key)
+        elif col_dtype == np.int64:
+            agg_array = sum_int64(ct_input[col], factor_carray, nr_groups, skip_key)
+        else:
+            raise NotImplementedError('Column dtype not supported for aggregation yet (only int64 & float64)')
+        total.append(agg_array)
+
+    ct_agg.append(total)
+
+# ---------------------------------------------------------------------------
+# Temporary Section
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef carray_is_in(carray col, set value_set, ndarray boolarr, bint reverse):
