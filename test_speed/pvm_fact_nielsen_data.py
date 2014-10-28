@@ -50,7 +50,7 @@ for n, row in enumerate(result_bcolz):
 
 # fact_bcolz.cache_factor([ 'a_n_11', 'a_n_101' , 'a_n_21' , 'a_n_31'])
 #
-# %prun -l 20 -s cumulative fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m101101'], method=2)
+# %prun -l 20 -s cumulative fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'])
 #
 # x = bcolz.ctable(rootdir='pvm_fact_nielsen_data.bcolz', mode='r')
 # x.groupby([ 'a_n_11'], ['m_n_1001'])
