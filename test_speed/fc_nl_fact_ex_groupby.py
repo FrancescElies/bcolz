@@ -4,6 +4,7 @@ import bcolz
 import pandas as pd
 import contextlib
 import time
+from nose.tools import assert_equal
 
 @contextlib.contextmanager
 def ctime(label=""):
@@ -27,11 +28,18 @@ fact_bcolz = bcolz.ctable.fromdataframe(fact_df, rootdir=rootdir)
 fact_bcolz.flush()
 
 with ctime("Pandas groupby"):
-    fact_df.groupby(['a_n_11', 'a_n_21'], as_index=False)['m_n_1001'].sum()
+    result_pandas = \
+        fact_df.groupby(['a_n_11', 'a_n_21'], as_index=False)['m_n_1001'].sum()
 
 with ctime("Bcolz groupby"):
-    fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'])
+    result_bcolz = \
+        fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'])
 
+print('Check correctness of the result vs pandas')
+for n, row in enumerate(result_bcolz):
+    assert_equal(row.a_n_11, result_pandas.iloc[n].a_n_11)
+    assert_equal(row.a_n_21, result_pandas.iloc[n].a_n_21)
+    assert_equal(row.m_n_1001, result_pandas.iloc[n].m_n_1001)
 
 fact_bcolz.cache_factor([ 'a_n_11', 'a_n_101' , 'a_n_21' , 'a_n_31'])
 
