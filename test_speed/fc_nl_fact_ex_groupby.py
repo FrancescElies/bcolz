@@ -29,14 +29,8 @@ fact_bcolz.flush()
 with ctime("Pandas groupby"):
     fact_df.groupby(['a_n_11', 'a_n_21'], as_index=False)['m_n_1001'].sum()
 
-with ctime("Bcolz groupby method 1"):
-    fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'], method=1)
-
-with ctime("Bcolz groupby method 2"):
-    fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'], method=2)
-
-with ctime("Bcolz groupby method 3"):
-    fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'], method=3)
+with ctime("Bcolz groupby"):
+    fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'])
 
 
 fact_bcolz.cache_factor([ 'a_n_11', 'a_n_101' , 'a_n_21' , 'a_n_31'])
