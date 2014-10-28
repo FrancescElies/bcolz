@@ -14,7 +14,7 @@ def ctime(label=""):
     g_elapsed = time.time() - t
     print '--> ', label, round(g_elapsed, 3), "sec\n"
 
-file_h5='pvm_fact_nielsen_data.h5'
+file_h5='/srv/hdf5/pvm_fact_nielsen_data.h5'
 
 hdf = pd.HDFStore(file_h5, mode='r')
 
