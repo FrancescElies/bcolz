@@ -3128,12 +3128,12 @@ def aggregate_groups_by_iter(ct_input,
         start = datetime.datetime.now()
         factor_iter = factor_carray.iter()
         if agg_op == 1:  # sum
-            for value in _loop_carray(ct_input[col]):
+            for value in ct_input[col].iter():
                 k = factor_iter.next()
                 if k != skip_key:
                     agg_array[k] += value
         elif agg_op == 2:  # sum_na
-            for value in _loop_carray(ct_input[col]):
+            for value in ct_input[col].iter():
                 k = factor_iter.next()
                 if k != skip_key and value == value:
                     agg_array[k] += value
