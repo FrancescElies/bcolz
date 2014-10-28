@@ -59,7 +59,8 @@ df.m1 = df.m1.astype(np.int32)
 
 # print 'reference\n', df.groupby(groupby_cols, sort=True)[agg_list].sum()
 with ctime("--> Pandas groupby"):
-    result_pandas = df.groupby(groupby_cols, sort=True).sum()
+    result_pandas = \
+        df.groupby(groupby_cols, as_index=False)['m1', 'm2', 'm3'].sum()
 
 elapsed_pandas = g_elapsed
 
