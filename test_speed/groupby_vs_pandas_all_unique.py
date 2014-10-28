@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import contextlib, time
 import random, string
+from nose.tools import assert_equal
 
 INT32 = 2**32
 INT64 = 2**64
@@ -58,7 +59,7 @@ df.m1 = df.m1.astype(np.int32)
 
 # print 'reference\n', df.groupby(groupby_cols, sort=True)[agg_list].sum()
 with ctime("Pandas groupby"):
-    df.groupby(groupby_cols, sort=True).sum()
+    result_pandas = df.groupby(groupby_cols, sort=True).sum()
 
 elapsed_pandas = g_elapsed
 
@@ -69,26 +70,33 @@ os.rmdir(rootdir) # folder should be emtpy
 fact_bcolz = bcolz.ctable.fromdataframe(df, rootdir=rootdir)
 fact_bcolz.rootdir
 
+
 # this caches the factorizations on-disk directly in the rootdir
-with ctime("Bcolz caching"):
-    fact_bcolz.cache_factor(groupby_cols, refresh=True) 
+with ctime("--> Bcolz caching"):
+    fact_bcolz.cache_factor(groupby_cols, refresh=True)
 
-# does the first 3 parts of the groupby, see the code
-# print fact_bcolz.groupby(groupby_cols, agg_list, method=2)
-with ctime("Bcolz groupby, method 2"):
-    fact_bcolz.groupby(groupby_cols, agg_list, method=2)
+with ctime("--> Bcolz groupby"):
+    result_bcolz = fact_bcolz.groupby(groupby_cols, agg_list)
 elapsed_bcolz = g_elapsed
 
-print round(elapsed_bcolz / elapsed_pandas, 3), 'meth2 x times slower than pandas'
+print round(elapsed_bcolz / elapsed_pandas, 3), 'x times slower than pandas'
 
-# does the first 3 parts of the groupby, see the code
-# print fact_bcolz.groupby(groupby_cols, agg_list, method=1)
-with ctime("Bcolz groupby, method 1"):
-    fact_bcolz.groupby(groupby_cols, agg_list, method=1)
+print('--> Check correctness of the result vs pandas, if nothing printed is fine')
+assert_equal(result_bcolz.len, len(result_pandas))
+for n, row in enumerate(result_bcolz):
+    # results might not appear in the same order
+    tmp = result_pandas.loc[(result_pandas.a1 == row.a1) &
+                            (result_pandas.a2 == row.a2) &
+                            (result_pandas.a3 == row.a3) &
+                            (result_pandas.a4 == row.a4)]
 
-elapsed_bcolz = g_elapsed
-
-print round(elapsed_bcolz / elapsed_pandas, 3), 'meth1 x times slower than pandas'
+    assert_equal(row.a1, tmp.a1.values[0])
+    assert_equal(row.a2, tmp.a2.values[0])
+    assert_equal(row.a3, tmp.a3.values[0])
+    assert_equal(row.a4, tmp.a4.values[0])
+    assert_equal(row.m1, tmp.m1.values[0])
+    assert_equal(row.m2, tmp.m2.values[0])
+    assert_equal(row.m3, tmp.m3.values[0])
 
 # -- test speed in Ipython --
 # %timeit fact_bcolz.groupby(['a1', 'a2', 'a3'], ['m1', 'm2'])

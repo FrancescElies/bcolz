@@ -31,10 +31,17 @@ fact_bcolz.flush()
 with ctime("--> Pandas groupby"):
     result_pandas = \
         fact_df.groupby(['a_n_11', 'a_n_21'], as_index=False)['m101101'].sum()
+elapsed_pandas = g_elapsed
+
+with ctime("--> Bcolz caching"):
+    fact_bcolz.cache_factor(['a_n_11', 'a_n_21'], refresh=True)
 
 with ctime("--> Bcolz groupby"):
     result_bcolz = \
         fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m101101'])
+elapsed_bcolz = g_elapsed
+
+print round(elapsed_bcolz / elapsed_pandas, 3), 'x times slower than pandas'
 
 print('--> Check correctness of the result vs pandas, if nothing printed is fine')
 assert_equal(result_bcolz.len, len(result_pandas))
