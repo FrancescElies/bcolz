@@ -3107,6 +3107,92 @@ cdef sum_float64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssi
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+cdef sum_int32(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize_t skip_key):
+    cdef:
+        chunk input_chunk, factor_chunk
+        Py_ssize_t input_chunk_nr, input_chunk_len
+        Py_ssize_t factor_chunk_nr, factor_chunk_len, factor_chunk_row
+        Py_ssize_t current_index, i, factor_total_chunks, leftover_elements
+
+        ndarray[npy_int32] in_buffer
+        ndarray[npy_int64] factor_buffer
+        ndarray[npy_int32] out_buffer
+
+    count = 0
+    ret = 0
+    reverse = {}
+
+    input_chunk_len = ca_input.chunklen
+    in_buffer = np.empty(input_chunk_len, dtype='int32')
+    factor_chunk_len = ca_factor.chunklen
+    factor_total_chunks = ca_factor.nchunks
+    factor_chunk_nr = 0
+    factor_buffer = np.empty(factor_chunk_len, dtype='int64')
+    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+    factor_chunk_row = 0
+    out_buffer = np.zeros(nr_groups, dtype='int32')
+
+    for input_chunk_nr in range(ca_input.nchunks):
+        # fill input buffer
+        input_chunk = ca_input.chunks[input_chunk_nr]
+        input_chunk._getitem(0, input_chunk_len, in_buffer.data)
+
+        # loop through rows
+        for i in range(input_chunk_len):
+
+            # go to next factor buffer if necessary
+            if factor_chunk_row == factor_chunk_len:
+                factor_chunk_nr += 1
+                if factor_chunk_nr < factor_total_chunks:
+                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+                else:
+                    factor_buffer = ca_factor.leftover_array
+                factor_chunk_row = 0
+
+            # retrieve index
+            current_index = factor_buffer[factor_chunk_row]
+            factor_chunk_row += 1
+
+            # update value if it's not an invalid index
+            if current_index != skip_key:
+                out_buffer[current_index] += in_buffer[i]
+
+    leftover_elements = cython.cdiv(ca_input.leftover, ca_input.atomsize)
+    if leftover_elements > 0:
+        # fill input buffer
+        in_buffer = ca_input.leftover_array
+
+        # loop through rows
+        for i in range(leftover_elements):
+
+            # go to next factor buffer if necessary
+            if factor_chunk_row == factor_chunk_len:
+                factor_chunk_nr += 1
+                if factor_chunk_nr < factor_total_chunks:
+                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
+                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+                else:
+                    factor_buffer = ca_factor.leftover_array
+                factor_chunk_row = 0
+
+            # retrieve index
+            current_index = factor_buffer[factor_chunk_row]
+            factor_chunk_row += 1
+
+            # update value if it's not an invalid index
+            if current_index != skip_key:
+                out_buffer[current_index] += in_buffer[i]
+
+    # check whether a row has to be removed if it was meant to be skipped
+    if skip_key < nr_groups:
+        np.delete(out_buffer, skip_key)
+
+    return out_buffer
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef sum_int64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize_t skip_key):
     cdef:
         chunk input_chunk, factor_chunk
@@ -3296,8 +3382,12 @@ def aggregate_groups_by_iter_2(ct_input,
             total.append(sum_float64(ct_input[col], factor_carray, nr_groups, skip_key))
         elif col_dtype == np.int64:
             total.append(sum_int64(ct_input[col], factor_carray, nr_groups, skip_key))
+        elif col_dtype == np.int32:
+            total.append(sum_int32(ct_input[col], factor_carray, nr_groups, skip_key))
         else:
-            raise NotImplementedError('Column dtype not supported for aggregation yet (only int64 & float64)')
+            raise NotImplementedError(
+                'Column dtype ({0}) not supported for aggregation yet '
+                '(only int32, int64 & float64)'.format(str(col_dtype)))
 
     ct_agg.append(total)
 
