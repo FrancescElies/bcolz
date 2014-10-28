@@ -21,7 +21,7 @@ def ctime(label=""):
     t = time.time()
     yield
     g_elapsed = time.time() - t
-    print '--> ', label, round(g_elapsed, 3), "sec\n"
+    print label, round(g_elapsed, 3), "sec\n"
 
 
 # -- Common inputs for groupby --
@@ -58,7 +58,7 @@ df.a3 = df.a3.astype(np.int32)
 df.m1 = df.m1.astype(np.int32)
 
 # print 'reference\n', df.groupby(groupby_cols, sort=True)[agg_list].sum()
-with ctime("Pandas groupby"):
+with ctime("--> Pandas groupby"):
     result_pandas = df.groupby(groupby_cols, sort=True).sum()
 
 elapsed_pandas = g_elapsed
