@@ -13,7 +13,7 @@ def ctime(label=""):
     t = time.time()
     yield
     g_elapsed = time.time() - t
-    print '--> ', label, round(g_elapsed, 3), "sec\n"
+    print label, round(g_elapsed, 3), "sec\n"
 
 file_h5='/srv/hdf5/pvm_fact_nielsen_data.h5'
 
@@ -27,15 +27,15 @@ print(rootdir)
 fact_bcolz = bcolz.ctable.fromdataframe(fact_df, rootdir=rootdir)
 fact_bcolz.flush()
 
-with ctime("Pandas groupby"):
+with ctime("--> Pandas groupby"):
     result_pandas = \
         fact_df.groupby(['a_n_11', 'a_n_21'], as_index=False)['m_n_1001'].sum()
 
-with ctime("Bcolz groupby"):
+with ctime("--> Bcolz groupby"):
     result_bcolz = \
         fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'])
 
-print('Check correctness of the result vs pandas, if nothing printed is fine')
+print('--> Check correctness of the result vs pandas, if nothing printed is fine')
 assert_equal(result_bcolz.len, len(result_pandas))
 for n, row in enumerate(result_bcolz):
     # results might not appear in the same order
@@ -46,6 +46,7 @@ for n, row in enumerate(result_bcolz):
     assert_equal(row.a_n_21, tmp.a_n_21.values[0])
     assert_equal(row.m_n_1001, tmp.m_n_1001.values[0])
 
+hdf.close()
 # --
 
 # fact_bcolz.cache_factor([ 'a_n_11', 'a_n_101' , 'a_n_21' , 'a_n_31'])
