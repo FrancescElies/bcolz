@@ -4,7 +4,7 @@ import bcolz
 import pandas as pd
 import contextlib
 import time
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_almost_equals
 
 @contextlib.contextmanager
 def ctime(label=""):
@@ -38,10 +38,12 @@ with ctime("Bcolz groupby"):
 
 print('Check correctness of the result vs pandas')
 for n, row in enumerate(result_bcolz):
-    assert_equal(row.a_n_11, result_pandas.iloc[n].a_n_11)
-    assert_equal(row.a_n_21, result_pandas.iloc[n].a_n_21)
-    assert_equal(row.m101101, result_pandas.iloc[n].m101101)
-    print n
+    tmp = result_pandas.loc[(result_pandas.a_n_11 == row.a_n_11) &
+                            (result_pandas.a_n_21 == row.a_n_21)]
+
+    assert_equal(row.a_n_11, tmp.a_n_11.values[0])
+    assert_equal(row.a_n_21, tmp.a_n_21.values[0])
+    assert_equal(row.m101101, tmp.m101101.values[0])
 
 # -------
 # fact_bcolz.cache_factor([ 'a_n_11', 'a_n_101' , 'a_n_21' , 'a_n_31'])
