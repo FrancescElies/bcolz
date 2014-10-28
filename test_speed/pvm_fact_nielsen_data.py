@@ -35,11 +35,16 @@ with ctime("Bcolz groupby"):
     result_bcolz = \
         fact_bcolz.groupby(['a_n_11', 'a_n_21'], ['m_n_1001'])
 
-print('Check correctness of the result vs pandas')
+print('Check correctness of the result vs pandas, if nothing printed is fine')
+assert_equal(result_bcolz.len, len(result_pandas))
 for n, row in enumerate(result_bcolz):
-    assert_equal(row.a_n_11, result_pandas.iloc[n].a_n_11)
-    assert_equal(row.a_n_21, result_pandas.iloc[n].a_n_21)
-    assert_equal(row.m_n_1001, result_pandas.iloc[n].m_n_1001)
+    # results might not appear in the same order
+    tmp = result_pandas.loc[(result_pandas.a_n_11 == row.a_n_11) &
+                            (result_pandas.a_n_21 == row.a_n_21)]
+
+    assert_equal(row.a_n_11, tmp.a_n_11.values[0])
+    assert_equal(row.a_n_21, tmp.a_n_21.values[0])
+    assert_equal(row.m_n_1001, tmp.m_n_1001.values[0])
 
 # --
 
