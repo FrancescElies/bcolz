@@ -1583,7 +1583,7 @@ def where_terms(ctable_, term_list):
 
     if eval_list:
         # convert boolarr back to carray
-        boolarr = carray(boolarr)
+        boolarr = carray_ext.carray(boolarr)
 
     return boolarr
 
