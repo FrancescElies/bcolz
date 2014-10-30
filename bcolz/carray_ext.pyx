@@ -3042,8 +3042,9 @@ cdef sum_float64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssi
     factor_total_chunks = ca_factor.nchunks
     factor_chunk_nr = 0
     factor_buffer = np.empty(factor_chunk_len, dtype='int64')
-    factor_chunk = ca_factor.chunks[factor_chunk_nr]
-    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+    if ca_factor.nchunks:
+        factor_chunk = ca_factor.chunks[factor_chunk_nr]
+        factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
     factor_chunk_row = 0
     out_buffer = np.zeros(nr_groups, dtype='float64')
 
@@ -3080,19 +3081,8 @@ cdef sum_float64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssi
 
         # loop through rows
         for i in range(leftover_elements):
-
-            # go to next factor buffer if necessary
-            if factor_chunk_row == factor_chunk_len:
-                factor_chunk_nr += 1
-                if factor_chunk_nr < factor_total_chunks:
-                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
-                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
-                else:
-                    factor_buffer = ca_factor.leftover_array
-                factor_chunk_row = 0
-
             # retrieve index
-            current_index = factor_buffer[factor_chunk_row]
+            current_index = ca_factor.leftover_array[i]
             factor_chunk_row += 1
 
             # update value if it's not an invalid index
@@ -3128,8 +3118,9 @@ cdef sum_int32(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize
     factor_total_chunks = ca_factor.nchunks
     factor_chunk_nr = 0
     factor_buffer = np.empty(factor_chunk_len, dtype='int64')
-    factor_chunk = ca_factor.chunks[factor_chunk_nr]
-    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+    if ca_factor.nchunks:
+        factor_chunk = ca_factor.chunks[factor_chunk_nr]
+        factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
     factor_chunk_row = 0
     out_buffer = np.zeros(nr_groups, dtype='int32')
 
@@ -3166,19 +3157,8 @@ cdef sum_int32(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize
 
         # loop through rows
         for i in range(leftover_elements):
-
-            # go to next factor buffer if necessary
-            if factor_chunk_row == factor_chunk_len:
-                factor_chunk_nr += 1
-                if factor_chunk_nr < factor_total_chunks:
-                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
-                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
-                else:
-                    factor_buffer = ca_factor.leftover_array
-                factor_chunk_row = 0
-
             # retrieve index
-            current_index = factor_buffer[factor_chunk_row]
+            current_index = ca_factor.leftover_array[i]
             factor_chunk_row += 1
 
             # update value if it's not an invalid index
@@ -3214,8 +3194,9 @@ cdef sum_int64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize
     factor_total_chunks = ca_factor.nchunks
     factor_chunk_nr = 0
     factor_buffer = np.empty(factor_chunk_len, dtype='int64')
-    factor_chunk = ca_factor.chunks[factor_chunk_nr]
-    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+    if ca_factor.nchunks:
+        factor_chunk = ca_factor.chunks[factor_chunk_nr]
+        factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
     factor_chunk_row = 0
     out_buffer = np.zeros(nr_groups, dtype='int64')
 
@@ -3252,19 +3233,8 @@ cdef sum_int64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize
 
         # loop through rows
         for i in range(leftover_elements):
-
-            # go to next factor buffer if necessary
-            if factor_chunk_row == factor_chunk_len:
-                factor_chunk_nr += 1
-                if factor_chunk_nr < factor_total_chunks:
-                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
-                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
-                else:
-                    factor_buffer = ca_factor.leftover_array
-                factor_chunk_row = 0
-
             # retrieve index
-            current_index = factor_buffer[factor_chunk_row]
+            current_index = ca_factor.leftover_array[i]
             factor_chunk_row += 1
 
             # update value if it's not an invalid index
@@ -3300,8 +3270,9 @@ cdef groupby_value(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_s
     factor_total_chunks = ca_factor.nchunks
     factor_chunk_nr = 0
     factor_buffer = np.empty(factor_chunk_len, dtype='int64')
-    factor_chunk = ca_factor.chunks[factor_chunk_nr]
-    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+    if ca_factor.nchunks:
+        factor_chunk = ca_factor.chunks[factor_chunk_nr]
+        factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
     factor_chunk_row = 0
     out_buffer = np.zeros(nr_groups, dtype=ca_input.dtype)
 
@@ -3331,25 +3302,15 @@ cdef groupby_value(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_s
             if current_index != skip_key:
                 out_buffer[current_index] = in_buffer[i]
 
-    leftover_elements = cython.cdiv(ca_input.leftover, ca_input.atomsize)
-    if leftover_elements > 0:
+    ca_factor_leftover_elements = cython.cdiv(ca_factor.leftover, ca_factor.atomsize)
+    if ca_factor_leftover_elements > 0:
         in_buffer = ca_input.leftover_array
 
-        for i in range(leftover_elements):
-
-            # go to next factor buffer if necessary
-            if factor_chunk_row == factor_chunk_len:
-                factor_chunk_nr += 1
-                if factor_chunk_nr < factor_total_chunks:
-                    factor_chunk = ca_factor.chunks[factor_chunk_nr]
-                    factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
-                else:
-                    factor_buffer = ca_factor.leftover_array
-                factor_chunk_row = 0
-
+        for i in range(ca_factor_leftover_elements):
             # retrieve index
-            current_index = factor_buffer[factor_chunk_row]
-            factor_chunk_row += 1
+            # TODO: Why 'ca_factor.chunklen' is not equal 'ca_input.chunklen'?
+
+            current_index = ca_factor.leftover_array[i]
 
             # update value if it's not an invalid index
             if current_index != skip_key:

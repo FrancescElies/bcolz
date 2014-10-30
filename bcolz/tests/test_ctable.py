@@ -11,6 +11,9 @@ from __future__ import absolute_import
 import sys
 import os
 import tempfile
+import random
+import pandas as pd
+import string
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -18,6 +21,8 @@ from bcolz.tests.common import (
     MayBeDiskTest, TestCase, unittest, skipUnless)
 import bcolz
 from bcolz.py2help import xrange
+
+INT32_MAX = 2**31 - 1
 
 
 class createTest(MayBeDiskTest):
@@ -1861,6 +1866,70 @@ class conversionTest(TestCase):
             assert_allclose(ct2[key][:], ct[key][:])
         os.remove(tmpfile)
 
+
+class groupbyTest(MayBeDiskTest):
+    def setUp(self):
+        MayBeDiskTest.setUp(self)
+
+    def tearDown(self):
+        # labels rootdir will also be deleted with the following
+        MayBeDiskTest.tearDown(self)
+
+    def gen_almost_unique_row(self):
+        while 1:
+            d = {
+                'a1': ''.join(random.choice(string.lowercase) for i in range(20)),
+                'a2': random.random(),
+                'a3': random.randint(-INT32_MAX - 1, INT32_MAX),
+                'a4': random.randint(-INT32_MAX - 1, INT32_MAX),
+                'm1': 1,
+                'm2': 2,
+                'm3': 3.2
+            }
+            yield d
+
+    def test00(self):
+        """Groupby all unique values, pandas reference"""
+        groupby_cols = ['a1', 'a2', 'a3', 'a4']
+        agg_list = ['m1', 'm2', 'm3']
+
+        random.seed(1)
+        g = self.gen_almost_unique_row()
+        projects = [g.next() for _ in range(self.N)]
+
+        # -- Pandas --
+        df = pd.DataFrame(projects)
+        # force certain columns dtypes as int32
+        df.a3 = df.a3.astype(np.int32)
+        df.m1 = df.m1.astype(np.int32)
+
+        c = bcolz.ctable.fromdataframe(df, rootdir=self.rootdir)
+        c.cache_factor(groupby_cols, refresh=True)
+
+        from IPython import embed; embed()
+        exit()
+        result = c.groupby(groupby_cols, agg_list)  # todo: segmentation fault
+        random.seed(1)
+
+
+
+class groupbyDiskSmall(groupbyTest, TestCase):
+    N = 10
+    disk = True
+
+
+class groupbyDiskSmall(groupbyTest, TestCase):
+    N = 10
+    disk = True
+
+
+class groupbyBig(groupbyTest, TestCase):
+    N = int(1e5)
+
+
+class groupbyDiskBig(groupbyTest, TestCase):
+    N = int(1e5)
+    disk = True
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
