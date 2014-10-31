@@ -1280,14 +1280,13 @@ class ctable(object):
             if refresh or not os.path.exists(col_factor_rootdir):
                 carray_factor = carray_ext.carray([], dtype='int64',
                                                     chunklen=self[col].chunklen,
-                                                    expectedlen=self.size,
                                                     rootdir=col_factor_rootdir, mode='w')
                 _, values = carray_ext.factorize(self[col], labels=carray_factor)
                 carray_factor.flush()
                 carray_values = carray_ext.carray(
                     values.values(), dtype=self[col].dtype,
                     chunklen=self[col].chunklen,
-                  expectedlen=self.size, rootdir=col_values_rootdir, mode='w')
+                    rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
     def groupby(self, groupby_cols, agg_list, bool_arr=None, rootdir=None):
