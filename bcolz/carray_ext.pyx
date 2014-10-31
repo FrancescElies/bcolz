@@ -3042,9 +3042,6 @@ cdef sum_float64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssi
     factor_total_chunks = ca_factor.nchunks
     factor_chunk_nr = 0
     factor_buffer = np.empty(factor_chunk_len, dtype='int64')
-    if ca_factor.nchunks:
-        factor_chunk = ca_factor.chunks[factor_chunk_nr]
-        factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
     factor_chunk_row = 0
     out_buffer = np.zeros(nr_groups, dtype='float64')
 
@@ -3118,9 +3115,6 @@ cdef sum_int32(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize
     factor_total_chunks = ca_factor.nchunks
     factor_chunk_nr = 0
     factor_buffer = np.empty(factor_chunk_len, dtype='int64')
-    if ca_factor.nchunks:
-        factor_chunk = ca_factor.chunks[factor_chunk_nr]
-        factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
     factor_chunk_row = 0
     out_buffer = np.zeros(nr_groups, dtype='int32')
 
@@ -3194,9 +3188,6 @@ cdef sum_int64(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_ssize
     factor_total_chunks = ca_factor.nchunks
     factor_chunk_nr = 0
     factor_buffer = np.empty(factor_chunk_len, dtype='int64')
-    if ca_factor.nchunks:
-        factor_chunk = ca_factor.chunks[factor_chunk_nr]
-        factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
     factor_chunk_row = 0
     out_buffer = np.zeros(nr_groups, dtype='int64')
 
@@ -3270,9 +3261,6 @@ cdef groupby_value(carray ca_input, carray ca_factor, Py_ssize_t nr_groups, Py_s
     factor_total_chunks = ca_factor.nchunks
     factor_chunk_nr = 0
     factor_buffer = np.empty(factor_chunk_len, dtype='int64')
-    if ca_factor.nchunks:
-        factor_chunk = ca_factor.chunks[factor_chunk_nr]
-        factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
     factor_chunk_row = 0
     out_buffer = np.zeros(nr_groups, dtype=ca_input.dtype)
 
