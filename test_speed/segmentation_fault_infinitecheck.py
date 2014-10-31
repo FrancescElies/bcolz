@@ -71,5 +71,5 @@ def run(N):
     print '--------------------'
 
 if __name__ == '__main__':
-    for N in range(int(1e8)):
+    for N in range(1, int(1e8)):
         run(N)
