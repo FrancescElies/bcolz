@@ -1278,12 +1278,16 @@ class ctable(object):
 
             # create cache if needed
             if refresh or not os.path.exists(col_factor_rootdir):
-                carray_factor = carray_ext.carray([], dtype='int64', expectedlen=self.size,
+                carray_factor = carray_ext.carray([], dtype='int64',
+                                                    chunklen=self[col].chunklen,
+                                                    expectedlen=self.size,
                                                     rootdir=col_factor_rootdir, mode='w')
                 _, values = carray_ext.factorize(self[col], labels=carray_factor)
                 carray_factor.flush()
-                carray_values = carray_ext.carray(values.values(), dtype=self[col].dtype,
-                                                  rootdir=col_values_rootdir, mode='w')
+                carray_values = carray_ext.carray(
+                    values.values(), dtype=self[col].dtype,
+                    chunklen=self[col].chunklen,
+                  expectedlen=self.size, rootdir=col_values_rootdir, mode='w')
                 carray_values.flush()
 
     def groupby(self, groupby_cols, agg_list, bool_arr=None, rootdir=None):
@@ -1346,12 +1350,12 @@ def factorize_groupby_cols(ctable_, groupby_cols):
             col_values_rootdir = col_rootdir + '.values'
             if os.path.exists(col_factor_rootdir):
                 cached = True
-                col_factor_carray = carray_ext.carray(rootdir=col_factor_rootdir, mode='r')
-                col_values_carray = carray_ext.carray(rootdir=col_values_rootdir, mode='r')
+                col_factor_carray = carray_ext.carray(chunklen=ctable_[col].chunklen, rootdir=col_factor_rootdir, mode='r')
+                col_values_carray = carray_ext.carray(chunklen=ctable_[col].chunklen, rootdir=col_values_rootdir, mode='r')
 
         if not cached:
             col_factor_carray, values = carray_ext.factorize(ctable_[col])
-            col_values_carray = carray_ext.carray(values.values(), dtype=ctable_[col].dtype)
+            col_values_carray = carray_ext.carray(values.values(), chunklen=ctable_[col].chunklen, dtype=ctable_[col].dtype)
 
         factor_list.append(col_factor_carray)
         values_list.append(col_values_carray)
