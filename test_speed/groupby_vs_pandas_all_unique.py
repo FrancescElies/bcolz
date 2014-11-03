@@ -9,8 +9,7 @@ import contextlib, time
 import random, string
 from nose.tools import assert_equal
 
-INT32 = 2**32
-INT64 = 2**64
+INT32 = 2**31
 
 # -- Context manager --
 g_elapsed = 0

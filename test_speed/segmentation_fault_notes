@@ -1,0 +1,52 @@
+segmentation fault - pandas is not the issue
+if the source is numpy iter gives the same issue
+
+groupby being missused or a bug?
+
+
+Error raised by
+---------------
+cdef void _getitem (Line 488)
+
+
+
+Posible functions where _getitem is called
+------------------------------------------
+sum_int64             - todo, seg. fault small data, N=10, N=8192
+sum_int32             - todo, seg. fault small data, N=10, N=8192
+sum_float64           - todo, seg. fault small data, N=10, N=8192
+groupby_value         -
+factorize_str         -
+factorize_int64       -
+factorize_int32       -
+factorize_float64     -
+chunk.__getitem__     -
+chunk_.getitem_cache  -
+_getrange             -
+
+
+
+Problem description
+-------------------
+Leftovers can not be accessed with _getitem(), there is nothing to decompress
+there, still wondering, why does this code work in production?
+
+    if leftover_elements > 0:
+        print 'inside leftovers'
+        in_buffer = ca_input.leftover_array
+
+        for i in range(leftover_elements):
+            # # go to next factor buffer if necessary
+            # if factor_chunk_row == factor_chunk_len:
+            #     factor_chunk_nr += 1
+            #     if factor_chunk_nr < factor_total_chunks:
+            #         factor_chunk = ca_factor.chunks[factor_chunk_nr]
+            #         factor_chunk._getitem(0, factor_chunk_len, factor_buffer.data)
+            #     else:
+            #
+            #     factor_chunk_row = 0
+
+
+# TODO: Why 'ca_factor.chunklen' is not equal 'ca_input.chunklen'?
+
+N=1000000
