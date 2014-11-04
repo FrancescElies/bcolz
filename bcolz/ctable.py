@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 import numpy as np
 import bcolz
-from bcolz import utils, attrs, array2string, carray_ext
+from bcolz import utils, attrs, array2string, carray_ext, ctable_ext
 import itertools
 from collections import namedtuple
 import json
@@ -1280,7 +1280,7 @@ class ctable(object):
             if refresh or not os.path.exists(col_factor_rootdir):
                 carray_factor = carray_ext.carray([], dtype='int64', expectedlen=self.size,
                                                     rootdir=col_factor_rootdir, mode='w')
-                _, values = carray_ext.factorize(self[col], labels=carray_factor)
+                _, values = ctable_ext.factorize(self[col], labels=carray_factor)
                 carray_factor.flush()
                 carray_values = carray_ext.carray(values.values(), dtype=self[col].dtype,
                                                   rootdir=col_values_rootdir, mode='w')
@@ -1318,7 +1318,7 @@ class ctable(object):
         ct_agg, dtype_list, agg_ops = create_agg_ctable(self, groupby_cols, agg_list, nr_groups, rootdir)
 
         # perform aggregation
-        carray_ext.aggregate_groups_by_iter_2(self,
+        ctable_ext.aggregate_groups_by_iter_2(self,
                                 ct_agg,
                                 nr_groups,
                                 skip_key,
@@ -1350,7 +1350,7 @@ def factorize_groupby_cols(ctable_, groupby_cols):
                 col_values_carray = carray_ext.carray(rootdir=col_values_rootdir, mode='r')
 
         if not cached:
-            col_factor_carray, values = carray_ext.factorize(ctable_[col])
+            col_factor_carray, values = ctable_ext.factorize(ctable_[col])
             col_values_carray = carray_ext.carray(values.values(), dtype=ctable_[col].dtype)
 
         factor_list.append(col_factor_carray)
@@ -1392,7 +1392,7 @@ def make_group_index(factor_list, values_list, groupby_cols, array_length, bool_
         factor_input = bcolz.eval(eval_str, user_dict=factor_set)
 
         # now factorize the unique groupby combinations
-        factor_carray, values = carray_ext.factorize(factor_input)
+        factor_carray, values = ctable_ext.factorize(factor_input)
 
     skip_key = None
 
@@ -1400,7 +1400,7 @@ def make_group_index(factor_list, values_list, groupby_cols, array_length, bool_
         # make all non relevant combinations -1
         factor_carray = bcolz.eval('(factor + 1) * bool - 1', user_dict={'factor': factor_carray, 'bool': bool_arr})
         # now check how many unique values there are left
-        factor_carray, values = carray_ext.factorize(factor_carray)
+        factor_carray, values = ctable_ext.factorize(factor_carray)
         # values might contain one value too much (-1) (no direct lookup possible because values is a reversed dict)
         filter_check = [key for key, value in values.iteritems() if value == -1]
         if filter_check:
@@ -1579,7 +1579,7 @@ def where_terms(ctable_, term_list):
 
         value_set = set(term[2])
 
-        carray_ext.carray_is_in(col, value_set, boolarr, reverse)
+        ctable_ext.carray_is_in(col, value_set, boolarr, reverse)
 
     if eval_list:
         # convert boolarr back to carray

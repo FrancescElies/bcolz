@@ -141,6 +141,7 @@ lib_dirs = []
 libs = []
 def_macros = []
 sources = ["bcolz/carray_ext.pyx", "bcolz/khash.pxd"]
+sources_ctable = ["bcolz/ctable_ext.pyx"]
 
 # Include NumPy header dirs
 from numpy.distutils.misc_util import get_numpy_include_dirs
@@ -227,6 +228,14 @@ for binary data.
                     include_dirs=inc_dirs,
                     define_macros=def_macros,
                     sources=sources,
+                    library_dirs=lib_dirs,
+                    libraries=libs,
+                    extra_link_args=LFLAGS,
+                    extra_compile_args=CFLAGS),
+          Extension("bcolz.ctable_ext",
+                    include_dirs=inc_dirs,
+                    define_macros=def_macros,
+                    sources=sources_ctable,
                     library_dirs=lib_dirs,
                     libraries=libs,
                     extra_link_args=LFLAGS,

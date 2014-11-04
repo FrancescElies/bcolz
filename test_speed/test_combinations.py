@@ -25,8 +25,8 @@ def gen_almost_unique_row(N):
             pool_c.next(),
             pool_d.next(),
             random.random(),
-            random.randint(-max_int64 - 1, max_int64),
-            random.randint(-max_int32 - 1, max_int32),
+            random.randint(- 10, 10),
+            random.randint(- 10, 10),
         )
         yield d
 
