@@ -17,6 +17,9 @@ import tempfile
 import json
 import datetime
 
+import numpy as np
+import cython
+
 import bcolz
 from bcolz import utils, attrs, array2string
 from khash cimport *
@@ -53,6 +56,18 @@ SizeType = np.int64
 
 # The native int type for this platform
 IntType = np.dtype(np.int_)
+
+#-----------------------------------------------------------------
+
+# numpy functions & objects
+from definitions cimport import_array, ndarray, dtype, \
+    malloc, realloc, free, memcpy, memset, strdup, strcmp, \
+    npy_uint8, npy_uint32, npy_int32, npy_uint64, npy_int64, npy_float64, \
+    PyString_AsString, PyString_GET_SIZE, \
+    PyString_FromStringAndSize, \
+    Py_BEGIN_ALLOW_THREADS, Py_END_ALLOW_THREADS, \
+    PyArray_GETITEM, PyArray_SETITEM, \
+    npy_intp, PyBuffer_FromMemory, Py_uintptr_t, Py_ssize_t
 
 #-----------------------------------------------------------------
 
