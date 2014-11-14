@@ -1503,9 +1503,9 @@ def where_terms(ctable_, term_list):
             if eval_string:
                 eval_string += ' & '
 
-            eval_string += filter_col + ' ' \
+            eval_string += '(' + filter_col + ' ' \
                            + filter_operator + ' ' \
-                           + str(filter_value)
+                           + str(filter_value) + ')'
 
         elif filter_operator in ['in', 'not in']:
             # Check input
