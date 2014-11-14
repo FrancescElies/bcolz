@@ -1526,8 +1526,8 @@ def where_terms(ctable_, term_list):
                 else:
                     filter_operator = '=='
 
-                eval_string += filter_col + ' ' + \
-                               filter_operator + ' '
+                eval_string += '(' + filter_col + ' ' + \
+                               filter_operator
 
                 filter_value = filter_value[0]
 
@@ -1536,7 +1536,7 @@ def where_terms(ctable_, term_list):
                 else:
                     filter_value = str(filter_value)
 
-                eval_string += filter_value
+                eval_string += filter_value + ') '
 
             else:
 
