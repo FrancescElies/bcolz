@@ -17,7 +17,7 @@ import json
 import os
 import os.path
 import shutil
-from .py2help import _inttypes, imap, xrange
+from .py2help import _inttypes, _strtypes, imap, xrange
 
 _inttypes += (np.integer,)
 islice = itertools.islice
@@ -1085,7 +1085,7 @@ class ctable(object):
                 raise IndexError(
                     "arrays used as indices must be integer (or boolean)")
         # Column name or expression
-        elif isinstance(key, basestring):
+        elif isinstance(key, _strtypes):
             if key not in self.names:
                 # key is not a column name, try to evaluate
                 arr = self.eval(key, depth=4)
@@ -1197,7 +1197,7 @@ class ctable(object):
 
         This call should typically be done after performing modifications
         (__settitem__(), append()) in persistence mode.  If you don't do this,
-        you risk loosing part of your modifications.
+        you risk losing part of your modifications.
 
         """
         for name in self.names:

@@ -25,15 +25,15 @@ blazing fast.  This, in combination with carray/ctable disk-based,
 compressed containers, can be used for performing out-of-core
 computations efficiently, but most importantly *transparently*.
 
-Just to wet your appetite, here it is an example with real data, where
+Just to whet your appetite, here it is an example with real data, where
 bcolz is already fulfilling the promise of accelerating memory I/O by
 using compression:
 
 http://nbviewer.ipython.org/github/Blosc/movielens-bench/blob/master/querying-ep14.ipynb
 
 
-Rational
---------
+Rationale
+---------
 
 By using compression, you can deal with more data using the same
 amount of memory, which is very good on itself.  But in case you are
@@ -115,7 +115,7 @@ You can find the online manual at:
 http://bcolz.blosc.org
 
 but of course, you can always access docstrings from the console
-(i.e. help(bcolz.ctable)).
+(i.e. ``help(bcolz.ctable)``).
 
 Also, you may want to look at the bench/ directory for some examples
 of use.

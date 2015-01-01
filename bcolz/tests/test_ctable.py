@@ -17,7 +17,10 @@ from numpy.testing import assert_array_equal, assert_allclose
 from bcolz.tests.common import (
     MayBeDiskTest, TestCase, unittest, skipUnless)
 import bcolz
-from bcolz.py2help import xrange
+from bcolz.py2help import xrange, PY2
+import pickle
+import os
+import shutil
 
 
 class createTest(MayBeDiskTest):
@@ -100,6 +103,12 @@ class createTest(MayBeDiskTest):
                            dtype='i4,f8', count=N, rootdir=self.rootdir)
         mt = t[:]
         t.free_cachemem()
+
+    def test05(self):
+        """Testing unicode string in column names. """
+        t = bcolz.ctable(([1], [2]), (u'f0', u'f1'), rootdir=self.rootdir)
+        # this should not raise an error
+        t[u'f0'].rootdir
 
 
 class createMemoryTest(createTest, TestCase):
@@ -1860,6 +1869,25 @@ class conversionTest(TestCase):
         for key in ct.names:
             assert_allclose(ct2[key][:], ct[key][:])
         os.remove(tmpfile)
+
+
+class pickleTest(MayBeDiskTest, TestCase):
+
+    disk = True
+
+    def test_pickleable(self):
+        b = bcolz.ctable([[1, 2, 3], [1, 2, 3]],
+                         names=['a', 'b'],
+                         rootdir=self.rootdir)
+        s = pickle.dumps(b)
+        if PY2:
+            self.assertTrue(type(s), str)
+        else:
+            self.assertTrue(type(s), bytes)
+
+        b2 = pickle.loads(s)
+        self.assertEquals(b2.rootdir, b.rootdir)
+        self.assertEquals(type(b2), type(b))
 
 
 if __name__ == '__main__':

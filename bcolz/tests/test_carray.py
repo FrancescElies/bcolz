@@ -22,8 +22,10 @@ from bcolz.tests import common
 from bcolz.tests.common import (
     MayBeDiskTest, TestCase, unittest, skipUnless, SkipTest)
 import bcolz
-from bcolz.py2help import xrange
+from bcolz.py2help import xrange, PY2
 from bcolz.carray_ext import chunk
+from bcolz import carray
+import pickle
 
 is_64bit = (struct.calcsize("P") == 8)
 
@@ -60,6 +62,21 @@ class chunkTest(TestCase):
         b = chunk(a, atom=a.dtype, cparams=bcolz.cparams())
         # print "b[1:8000]->", `b[1:8000]`
         assert_array_equal(a[1:8000], b[1:8000], "Arrays are not equal")
+
+
+class pickleTest(MayBeDiskTest, TestCase):
+    disk=True
+    def test_pickleable(self):
+        a = np.arange(1e2)
+        b = bcolz.carray(a, rootdir=self.rootdir)
+        s = pickle.dumps(b)
+        if PY2:
+            self.assertTrue(type(s), str)
+        else:
+            self.assertTrue(type(s), bytes)
+
+        b2 = pickle.loads(s)
+        self.assertEquals(b2.rootdir, b.rootdir)
 
 
 class getitemTest(MayBeDiskTest):
@@ -2254,6 +2271,22 @@ class groupsortIndexerDiskSmall(groupsortIndexerTest, TestCase):
 
 class groupsortIndexerBig(groupsortIndexerTest, TestCase):
     N = int(1e4)
+
+
+class reprTest(TestCase):
+    def test_datetime_carray_day(self):
+        ct = carray(np.array(['2010-01-01', '2010-01-02'],
+                             dtype='datetime64[D]'))
+        result = repr(ct)
+        self.assertTrue("['2010-01-01' '2010-01-02']" in result)
+
+    def test_datetime_carray_nanos(self):
+        x = ['2014-12-29T17:57:59.000000123',
+             '2014-12-29T17:57:59.000000456']
+        ct = carray(np.array(x, dtype='datetime64[ns]'))
+        result = repr(ct)
+        for el in x:
+            self.assertTrue(el in result)
 
 
 if __name__ == '__main__':
