@@ -1,7 +1,6 @@
-import numpy as np
-from definitions cimport ndarray, dtype, npy_intp
+from numpy cimport ndarray
 
-ctypedef ndarray ndarray_t
+from definitions cimport dtype, npy_intp
 
 cdef class chunk:
     cdef char typekind, isconstant
@@ -16,7 +15,6 @@ cdef class chunk:
                        object cparams)
     cdef compress_arrdata(self, ndarray array, int itemsize,
                           object cparams, object _memory)
-    cpdef ndarray_t _to_ndarray(self)
 
 
 cdef class chunks(object):

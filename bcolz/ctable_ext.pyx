@@ -1,7 +1,8 @@
 import numpy as np
 import cython
+from numpy cimport ndarray
 from definitions cimport \
-    ndarray, dtype, malloc, npy_int32, npy_uint64, npy_int64, npy_float64
+    dtype, malloc, npy_int32, npy_uint64, npy_int64, npy_float64
 
 from libc.string cimport strcpy
 from khash cimport *

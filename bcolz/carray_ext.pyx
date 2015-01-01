@@ -18,12 +18,14 @@ import json
 import datetime
 
 import numpy as np
+cimport numpy as np
+from numpy cimport ndarray
 import cython
 
 import bcolz
 from bcolz import utils, attrs, array2string
-from khash cimport *
-from libc.string cimport strcpy
+
+from .utils import build_carray
 
 if sys.version_info >= (3, 0):
     _MAXINT = 2 ** 31 - 1
@@ -60,14 +62,13 @@ IntType = np.dtype(np.int_)
 #-----------------------------------------------------------------
 
 # numpy functions & objects
-from definitions cimport import_array, ndarray, dtype, \
+from definitions cimport import_array, dtype, \
     malloc, realloc, free, memcpy, memset, strdup, strcmp, \
-    npy_uint8, npy_uint32, npy_int32, npy_uint64, npy_int64, npy_float64, \
     PyString_AsString, PyString_GET_SIZE, \
     PyString_FromStringAndSize, \
     Py_BEGIN_ALLOW_THREADS, Py_END_ALLOW_THREADS, \
     PyArray_GETITEM, PyArray_SETITEM, \
-    npy_intp, PyBuffer_FromMemory, Py_uintptr_t, Py_ssize_t
+    npy_intp, PyBuffer_FromMemory, Py_uintptr_t
 
 #-----------------------------------------------------------------
 
@@ -342,7 +343,7 @@ cdef class chunk:
         self.cdbytes = cbytes
         self.blocksize = blocksize
 
-    cdef compress_arrdata(self, ndarray_t array, int itemsize,
+    cdef compress_arrdata(self, ndarray array, int itemsize,
                           object cparams, object _memory):
         """Compress data in `array` and put it in ``self.data``"""
         cdef size_t nbytes, cbytes, blocksize, footprint
@@ -474,18 +475,6 @@ cdef class chunk:
             raise RuntimeError(
                 "fatal error during Blosc decompression: %d" % ret)
 
-    cpdef ndarray_t _to_ndarray(self):
-        cdef int nitems, ret
-        cdef ndarray return_value
-        nitems = cython.cdiv(self.nbytes, self.itemsize)
-        return_value = np.empty(nitems, dtype=self.dtype)
-        with nogil:
-            ret = blosc_decompress(self.data, <char *> return_value.data, self.nbytes)
-        if ret < 0:
-            raise RuntimeError(
-                "fatal error during Blosc decompression: %d" % ret)
-        return return_value
-
     def __getitem__(self, object key):
         """__getitem__(self, key) -> values."""
         cdef ndarray array
@@ -537,9 +526,6 @@ cdef class chunk:
     def __setitem__(self, object key, object value):
         """__setitem__(self, key, value) -> None."""
         raise NotImplementedError()
-
-    def __len__(self):
-        return cython.cdiv(self.nbytes, self.itemsize)
 
     def __str__(self):
         """Represent the chunk as an string."""
@@ -1340,9 +1326,9 @@ cdef class carray:
             return
 
         # Appending a single row should be supported
-        if arrcpy.shape == self._dtype.shape:
-            arrcpy = arrcpy.reshape((1,) + arrcpy.shape)
-        if arrcpy.shape[1:] != self._dtype.shape:
+        if np.shape(arrcpy) == self._dtype.shape:
+            arrcpy = arrcpy.reshape((1,) + np.shape(arrcpy))
+        if np.shape(arrcpy)[1:] != self._dtype.shape:
             raise ValueError(
                 "array trailing dimensions do not match with self")
 
@@ -2539,7 +2525,7 @@ cdef class carray:
 
         This call should typically be done after performing modifications
         (__settitem__(), append()) in persistence mode.  If you don't do this,
-        you risk loosing part of your modifications.
+        you risk losing part of your modifications.
 
         """
         cdef chunk chunk_
@@ -2581,6 +2567,9 @@ cdef class carray:
             header += "  rootdir := '%s'\n" % self._rootdir
         fullrepr = header + str(self)
         return fullrepr
+
+    def __reduce__(self):
+        return (build_carray, (self.rootdir,))
 
 ## Local Variables:
 ## mode: python
