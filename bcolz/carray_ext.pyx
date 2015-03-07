@@ -2646,16 +2646,17 @@ cpdef test_v2(carray c):
 cpdef test_v3(carray c):
     cdef:
         Py_ssize_t i, j
+        int chunklen_, leftover_elements
         ndarray[np.npy_int64] r
         chunk chunk_
 
     r = np.zeros(c.len, dtype='int64')
-
+    chunklen_ = c.chunklen
     i = 0
     for chunk_ in c.chunks:
         # fill input buffer
-        for item in chunk_:
-            r[i] = item
+        for j in range(chunklen_):
+            r[i] = chunk_[j]
             i += 1
 
     leftover_elements = cython.cdiv(c.leftover, c.atomsize)
@@ -2663,6 +2664,42 @@ cpdef test_v3(carray c):
         # loop through rows
         for j in range(leftover_elements):
             r[i] = c.leftover_array[j]
+            i += 1
+
+    return r
+
+cpdef test_v4(carray c):
+    cdef:
+        Py_ssize_t i
+        ndarray[np.npy_int64] block, r
+        np.npy_int64 item
+
+    r = np.zeros(c.len, dtype='int64')
+
+    blen = c.chunklen
+    if blen > len(c):
+        blen = len(c)
+        stop = len(c)
+
+    i = 0
+    for block in bcolz.iterblocks(c):
+        for item in block:
+            r[i] = item
+            i += 1
+
+    return r
+
+cpdef test_v5(carray c):
+    cdef:
+        Py_ssize_t i, j
+        ndarray[np.npy_int64] block, r
+
+    r = np.zeros(c.len, dtype='int64')
+
+    i = 0
+    for block in bcolz.iterblocks(c):
+        for j in range(len(block)):  # leftovers can have different length
+            r[i] = block[j]
             i += 1
 
     return r
