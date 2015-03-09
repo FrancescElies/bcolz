@@ -2,7 +2,8 @@ from contextlib import contextmanager
 import numpy as np
 import time
 from bcolz import carray
-from bcolz.carray_ext import test_v1, test_v2, test_v3, test_v4, test_v5
+from bcolz.carray_ext import test_v1, test_v2, \
+    test_v3, test_v4, test_v5, test_v6
 
 @contextmanager
 def ctime(message=None):
@@ -33,7 +34,11 @@ with ctime('test_v4'):
 with ctime('test_v5'):
     r5 = test_v5(c)
 
+with ctime('test_v6'):
+    r6 = test_v6(c)
+
 assert np.array_equal(r1, r2)
 assert np.array_equal(r1, r3)
 assert np.array_equal(r1, r4)
 assert np.array_equal(r1, r5)
+assert np.array_equal(r1, r6)

@@ -2704,6 +2704,22 @@ cpdef test_v5(carray c):
 
     return r
 
+cpdef test_v6(carray c):
+    cdef:
+        Py_ssize_t i, j
+        np.npy_int64 blen, base, chunklen
+        ndarray[np.npy_int64] block, r
+
+    chunklen = c.chunklen
+    r = np.zeros(c.len, dtype='int64')
+
+    for n, block in enumerate(bcolz.iterblocks(c)):
+        base = n * chunklen
+        for j in range(len(block)):
+            r[base + j] = block[j]
+
+    return r
+
 ## Local Variables:
 ## mode: python
 ## tab-width: 4
