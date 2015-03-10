@@ -928,7 +928,7 @@ cdef class carray:
         "The length (leading dimension) of this object."
         def __get__(self):
             if self._dtype.char == 'O':
-                return len(self.chunks)
+                return len(self._chunks)
             else:
                 # Important to do the cast in order to get a npy_intp result
                 return <npy_intp> cython.cdiv(self._nbytes, self.atomsize)
@@ -939,8 +939,8 @@ cdef class carray:
             return self._mode
         def __set__(self, value):
             self._mode = value
-            if hasattr(self.chunks, 'mode'):
-                self.chunks.mode = value
+            if hasattr(self._chunks, 'mode'):
+                self._chunks.mode = value
 
     property nbytes:
         "The original (uncompressed) size of this object (in bytes)."
@@ -971,7 +971,7 @@ cdef class carray:
                 raise ValueError(
                     "cannot modify the rootdir value of an in-memory carray")
             self._rootdir = value
-            self.chunks.rootdir = value
+            self._chunks.rootdir = value
 
     def __cinit__(self, object array=None, object cparams=None,
                   object dtype=None, object dflt=None,
@@ -1123,12 +1123,12 @@ cdef class carray:
 
         # Create layout for data and metadata
         self._cparams = cparams
-        self.chunks = []
+        self._chunks = []
         if rootdir is not None:
             self.mkdirs(rootdir, mode)
             metainfo = (
             dtype, cparams, self.shape[0], lastchunkarr, self._mode)
-            self.chunks = chunks(self._rootdir, metainfo=metainfo, _new=True)
+            self._chunks = chunks(self._rootdir, metainfo=metainfo, _new=True)
             # We can write the metainfo already
             self.write_meta()
 
@@ -1190,9 +1190,9 @@ cdef class carray:
 
             # Finally, open data directory
             metainfo = (dtype, cparams, shape[0], lastchunkarr, self._mode)
-            self.chunks = chunks(self._rootdir, metainfo=metainfo, _new=False)
+            self._chunks = chunks(self._rootdir, metainfo=metainfo, _new=False)
         else:
-            self.chunks, lastchunkarr[:] = xchunks
+            self._chunks, lastchunkarr[:] = xchunks
 
         # Update some counters
         calen = shape[0]  # the length ot the carray
@@ -1226,7 +1226,7 @@ cdef class carray:
             chunk_ = chunk(array_[i * chunklen:(i + 1) * chunklen],
                            self._dtype, self._cparams,
                            _memory=self._rootdir is None)
-            self.chunks.append(chunk_)
+            self._chunks.append(chunk_)
             cbytes += chunk_.cbytes
         self.leftover = leftover = nbytes % self._chunksize
         if leftover:
@@ -1313,7 +1313,7 @@ cdef class carray:
         chunk_ = chunk(pick_obj, np.dtype('O'), self._cparams,
                        _memory=self._rootdir is None)
 
-        self.chunks.append(chunk_)
+        self._chunks.append(chunk_)
         # Update some counters
         nbytes, cbytes = chunk_.nbytes, chunk_.cbytes
         self._cbytes += cbytes
@@ -1362,7 +1362,7 @@ cdef class carray:
         atomsize = self.atomsize
         itemsize = self.itemsize
         chunksize = self._chunksize
-        chunks = self.chunks
+        chunks = self._chunks
         leftover = self.leftover
         bsize = arrcpy.size * itemsize
         cbytes = 0
@@ -1457,7 +1457,7 @@ cdef class carray:
             return
 
         atomsize = self.atomsize
-        chunks = self.chunks
+        chunks = self._chunks
         leftover = self.leftover
         bsize = nitems * atomsize
         cbytes = 0
@@ -1679,7 +1679,7 @@ cdef class carray:
         # And populate it with metainfo (including chunks)
         meta_info = (self.shape, self.cparams, self.dtype, self.dflt,
                      self.expectedlen, self.cbytes, self.chunklen)
-        cview.open_carray(*meta_info, xchunks=(self.chunks, self.lastchunkarr))
+        cview.open_carray(*meta_info, xchunks=(self._chunks, self.lastchunkarr))
         return cview
 
     def sum(self, dtype=None):
@@ -1723,7 +1723,7 @@ cdef class carray:
 
         nchunks = <npy_intp> cython.cdiv(self._nbytes, self._chunksize)
         for nchunk from 0 <= nchunk < nchunks:
-            chunk_ = self.chunks[nchunk]
+            chunk_ = self._chunks[nchunk]
             if chunk_.isconstant:
                 result += chunk_.constant * self._chunklen
             elif self._dtype.type == np.bool_:
@@ -1774,7 +1774,7 @@ cdef class carray:
             return 1
 
         # Locate the *block* inside the chunk
-        chunk_ = self.chunks[nchunk]
+        chunk_ = self._chunks[nchunk]
         blocksize = chunk_.blocksize
         blocklen = <npy_intp> cython.cdiv(blocksize, atomsize)
 
@@ -1810,8 +1810,8 @@ cdef class carray:
         return 1
 
     def free_cachemem(self):
-        if type(self.chunks) is not list:
-            self.chunks.free_cachemem()
+        if type(self._chunks) is not list:
+            self._chunks.free_cachemem()
         self.idxcache = -1
         self.blockcache = None
 
@@ -1821,7 +1821,7 @@ cdef class carray:
 
         if stop is None and step is None:
             # Integer
-            cchunk = self.chunks[start]
+            cchunk = self._chunks[start]
             chunk = cchunk.getudata()
             return pickle.loads(chunk)
 
@@ -1976,7 +1976,7 @@ cdef class carray:
             if nchunk == nchunks - 1 and self.leftover:
                 arr[nwrow:nwrow + blen] = self.lastchunkarr[startb:stopb:step]
             else:
-                arr[nwrow:nwrow + blen] = self.chunks[nchunk][
+                arr[nwrow:nwrow + blen] = self._chunks[nchunk][
                                           startb:stopb:step]
             nwrow += blen
 
@@ -2127,7 +2127,7 @@ cdef class carray:
                                                        nwrow:nwrow + blen]
             else:
                 # Get the data chunk
-                chunk_ = self.chunks[nchunk]
+                chunk_ = self._chunks[nchunk]
                 self._cbytes -= chunk_.cbytes
                 # Get all the values there
                 cdata = chunk_[:]
@@ -2136,7 +2136,7 @@ cdef class carray:
                 # Replace the chunk
                 chunk_ = chunk(cdata, self._dtype, self._cparams,
                                _memory=self._rootdir is None)
-                self.chunks[nchunk] = chunk_
+                self._chunks[nchunk] = chunk_
                 # Update cbytes counter
                 self._cbytes += chunk_.cbytes
             nwrow += blen
@@ -2182,7 +2182,7 @@ cdef class carray:
             if nchunk == nchunks and self.leftover:
                 out[nwrow:nwrow + cblen] = self.lastchunkarr[startb:stopb]
             else:
-                chunk_ = self.chunks[nchunk]
+                chunk_ = self._chunks[nchunk]
                 chunk_._getitem(startb, stopb,
                                 out.data + nwrow * self.atomsize)
             nwrow += cblen
@@ -2222,7 +2222,7 @@ cdef class carray:
                 self.lastchunkarr[boolb] = value[nwrow:nwrow + blen]
             else:
                 # Get the data chunk
-                chunk_ = self.chunks[nchunk]
+                chunk_ = self._chunks[nchunk]
                 self._cbytes -= chunk_.cbytes
                 # Get all the values there
                 cdata = chunk_[:]
@@ -2231,7 +2231,7 @@ cdef class carray:
                 # Replace the chunk
                 chunk_ = chunk(cdata, self._dtype, self._cparams,
                                _memory=self._rootdir is None)
-                self.chunks[nchunk] = chunk_
+                self._chunks[nchunk] = chunk_
                 # Update cbytes counter
                 self._cbytes += chunk_.cbytes
             nwrow += blen
@@ -2520,8 +2520,8 @@ cdef class carray:
             # Check for zero'ed chunks in carrays
             carr = barr
             nchunk = <npy_intp> cython.cdiv(self.nrowsread, self.nrowsinbuf)
-            if nchunk < len(carr.chunks):
-                chunk_ = carr.chunks[nchunk]
+            if nchunk < len(carr._chunks):
+                chunk_ = carr._chunks[nchunk]
                 if chunk_.isconstant and chunk_.constant in (0, ''):
                     return 1
         else:
@@ -2568,7 +2568,7 @@ cdef class carray:
                            self.cparams,
                            _memory=self._rootdir is None)
             # Flush this chunk to disk
-            self.chunks.flush(chunk_)
+            self._chunks.flush(chunk_)
 
         # Finally, update the sizes metadata on-disk
         self._update_disk_sizes()

@@ -2157,7 +2157,7 @@ class chunksIterTest(MayBeDiskTest):
         b = bcolz.carray(a, dtype=_dtype, chunklen=chunklen_,
                          rootdir=self.rootdir)
         # print 'nchunks', b.nchunks
-        for n, chunk_ in enumerate(b.chunks):
+        for n, chunk_ in enumerate(b._chunks):
             # print 'chunk nr.', n, '-->', chunk_
             assert_array_equal(chunk_[0:chunklen_],
                                a[n * chunklen_:(n + 1) * chunklen_],

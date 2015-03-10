@@ -40,7 +40,7 @@ cdef class carray:
     cdef object lastchunkarr, where_arr, arr1
     cdef object _cparams, _dflt
     cdef object _dtype
-    cdef public object chunks
+    cdef public object _chunks
     cdef object _rootdir, datadir, metadir, _mode
     cdef object _attrs, iter_exhausted
     cdef ndarray iobuf, where_buf
