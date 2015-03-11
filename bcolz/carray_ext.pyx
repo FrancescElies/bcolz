@@ -18,7 +18,7 @@ import json
 import datetime
 
 cimport openmp
-from cython.parallel import parallel, prange
+from cython.parallel import parallel, prange, threadid
 from libc.stdlib cimport abort, malloc, free
 from libc.stdio cimport printf
 
