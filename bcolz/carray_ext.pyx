@@ -2727,14 +2727,14 @@ cpdef test_v6(carray c):
 
     return r
 
-cpdef test_v7(carray c, num_threads=None):
+cpdef test_v7(carray c, n_threads=4):
     cdef:
         Py_ssize_t i, j
         int _num_threads
         np.npy_int64 blen, base, chunklen, len_block
         ndarray[np.npy_int64] block, r
 
-    _num_threads = num_threads
+    _num_threads = n_threads
     chunklen = c.chunklen
     r = np.zeros(c.len, dtype='int64')
 
