@@ -4,7 +4,7 @@ import time
 import bcolz as bz
 from bcolz import carray
 from bcolz.carray_ext import test_v1, test_v2, \
-    test_v3, test_v4, test_v5, test_v6, test_v7, test_v8
+    test_v3, test_v4, test_v5, test_v6, test_v7
 
 @contextmanager
 def ctime(message=None):

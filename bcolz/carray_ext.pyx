@@ -2744,8 +2744,7 @@ cpdef test_v7(carray c, num_threads=None):
         len_block = len(block)
 
         with nogil, cython.boundscheck(False), cython.wraparound(False):
-            for j in prange(len_block, schedule='static',
-                            num_threads=_num_threads):
+            for j in prange(len_block, num_threads=_num_threads):
                 r[base + j] = block[j]
 
         base += chunklen
