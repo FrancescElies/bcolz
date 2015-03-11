@@ -2743,8 +2743,9 @@ cpdef test_v7(carray c, n_threads=4):
     for n, block in enumerate(bcolz.iterblocks(c)):
         len_block = len(block)
 
-        with nogil, cython.boundscheck(False), cython.wraparound(False):
-            for j in prange(len_block, num_threads=_num_threads):
+        with nogil, cython.boundscheck(False), cython.wraparound(False),\
+                parallel(num_threads=_num_threads):
+            for j in prange(len_block):
                 r[base + j] = block[j]
 
         base += chunklen
