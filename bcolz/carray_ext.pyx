@@ -2773,7 +2773,7 @@ cpdef test_v8(carray c, n_threads=4):
     iter = bcolz.iterblocks(c)
 
     lock = threading.Lock()
-    # TODO: solve segmentation fault
+    # TODO: solve segmentation fault, consider using openmp functions
     for i in prange(N, nogil=True, num_threads=_num_threads):
         # base = i * chunklen
         with gil, lock:
