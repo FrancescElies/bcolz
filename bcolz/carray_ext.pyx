@@ -22,6 +22,7 @@ from cython.parallel import parallel, prange, threadid
 from libc.stdlib cimport abort, malloc, free
 from libc.stdio cimport printf
 
+import threading
 import numpy as np
 cimport numpy as np
 from numpy cimport (ndarray,
@@ -2749,6 +2750,37 @@ cpdef test_v7(carray c, n_threads=4):
                 r[base + j] = block[j]
 
         base += chunklen
+
+    return r
+
+cpdef test_v8(carray c, n_threads=4):
+    cdef Py_ssize_t i, j
+    cdef int _num_threads, N, chunklen, len_block
+    cdef np.npy_int64 blen, base,
+    cdef ndarray[np.npy_int64] block, r
+
+    _num_threads = n_threads
+    chunklen = c.chunklen
+    r = np.zeros(c.len, dtype='int64')
+
+    if (c.len % c.chunklen) == 0:
+        N = c.nchunks
+    else:
+        N = c.nchunks + 1
+
+    iter = bcolz.iterblocks(c)
+
+    lock = threading.Lock()
+    # TODO: solve segmentation fault
+    for i in prange(N, nogil=True, num_threads=_num_threads):
+        # base = i * chunklen
+        with gil, lock:
+            base = i * chunklen
+            block = iter.next()
+            len_block = len(block)
+
+        for j in range(len_block):
+            r[base + j] = block[j]
 
     return r
 

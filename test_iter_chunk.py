@@ -4,7 +4,7 @@ import time
 import bcolz as bz
 from bcolz import carray
 from bcolz.carray_ext import test_v1, test_v2, \
-    test_v3, test_v4, test_v5, test_v6, test_v7
+    test_v3, test_v4, test_v5, test_v6, test_v7, test_v8
 
 @contextmanager
 def ctime(message=None):
@@ -48,6 +48,10 @@ del r6
 with ctime('test_v7'):
     r7 = test_v7(c, n_threads=4)
 del r7
+
+with ctime('test_v8'):
+    r8 = test_v8(c, n_threads=4)
+del r8
 
 
 # assert np.array_equal(r1, r2)
