@@ -2632,7 +2632,7 @@ cpdef test_v2(carray c):
     i = 0
     for input_chunk_nr in range(c.nchunks):
         # fill input buffer
-        input_chunk = c.chunks[input_chunk_nr]
+        input_chunk = c._chunks[input_chunk_nr]
         input_chunk._getitem(0, input_chunk_len, in_buffer.data)
         for j in range(input_chunk_len):
             r[i] = in_buffer[j]
@@ -2656,7 +2656,7 @@ cpdef test_v3(carray c):
     r = np.zeros(c.len, dtype='int64')
     chunklen_ = c.chunklen
     i = 0
-    for chunk_ in c.chunks:
+    for chunk_ in c._chunks:
         # fill input buffer
         for j in range(chunklen_):
             r[i] = chunk_[j]
