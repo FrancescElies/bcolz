@@ -2716,10 +2716,12 @@ cpdef test_v6(carray c):
     chunklen = c.chunklen
     r = np.zeros(c.len, dtype='int64')
 
+    base = 0
     for n, block in enumerate(bcolz.iterblocks(c)):
-        base = n * chunklen
         for j in range(len(block)):
             r[base + j] = block[j]
+
+        base += chunklen
 
     return r
 
