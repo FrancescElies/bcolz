@@ -18,6 +18,8 @@ import json
 import datetime
 
 cimport openmp
+from openmp cimport omp_lock_t, omp_init_lock, omp_set_lock, \
+    omp_unset_lock, omp_destroy_lock, omp_get_num_threads
 from cython.parallel import parallel, prange, threadid
 from libc.stdlib cimport abort, malloc, free
 from libc.stdio cimport printf
