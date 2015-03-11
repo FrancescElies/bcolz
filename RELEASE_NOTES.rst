@@ -21,6 +21,10 @@ Changes from 0.8.1 to 0.9.0
 
 - Distribute ``carray_ext.pxd`` as part of the package. (#159 @ARF)
 
+- Implement chunks iterator, which allows the following syntax
+  ``for chunk_ in ca._chunks``, added "internal use" indicator to carray 
+  chunks attribute (#153 @FrancescElies and @esc)
+
 Changes from 0.8.0 to 0.8.1
 ===========================
 
