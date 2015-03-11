@@ -19,7 +19,7 @@ import datetime
 
 cimport openmp
 from openmp cimport omp_lock_t, omp_init_lock, omp_set_lock, \
-    omp_unset_lock, omp_destroy_lock, omp_get_num_threads
+    omp_unset_lock, omp_destroy_lock, omp_get_num_threads, omp_get_num_procs
 from cython.parallel import parallel, prange, threadid
 from libc.stdlib cimport abort, malloc, free
 from libc.stdio cimport printf
@@ -2755,13 +2755,13 @@ cpdef test_v7(carray c, n_threads=4):
 
     return r
 
-cpdef test_v8(carray c, n_threads=4):
+cpdef test_v8(carray c):
     cdef Py_ssize_t i, j
-    cdef int _num_threads, N, chunklen, len_block
+    cdef int _num_threads, N, chunklen, len_block, _id
     cdef np.npy_int64 blen, base,
     cdef ndarray[np.npy_int64] block, r
+    cdef omp_lock_t lock
 
-    _num_threads = n_threads
     chunklen = c.chunklen
     r = np.zeros(c.len, dtype='int64')
 
@@ -2770,19 +2770,26 @@ cpdef test_v8(carray c, n_threads=4):
     else:
         N = c.nchunks + 1
 
+    _num_threads = omp_get_num_procs()
     iter = bcolz.iterblocks(c)
 
-    lock = threading.Lock()
-    # TODO: solve segmentation fault, consider using openmp functions
-    for i in prange(N, nogil=True, num_threads=_num_threads):
-        # base = i * chunklen
-        with gil, lock:
-            base = i * chunklen
-            block = iter.next()
-            len_block = len(block)
+    omp_init_lock(&lock)
 
-        for j in range(len_block):
-            r[base + j] = block[j]
+    # TODO: solve segmentation fault, consider using openmp functions
+    with nogil, parallel(num_threads=_num_threads):
+        for i in prange(N):
+            _id = threadid()
+            omp_set_lock(&lock)
+            with gil:
+                base = i * chunklen
+                block = iter.next()
+                len_block = len(block)
+            omp_unset_lock(&lock)
+            printf('[%d]%d %d %d\n', _id, base, i, len_block)
+
+            # for j in prange(len_block):
+            #     printf('%d %d', base, j)
+            #     r[base + j] = block[j]
 
     return r
 

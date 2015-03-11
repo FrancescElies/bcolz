@@ -50,7 +50,7 @@ with ctime('test_v7'):
 del r7
 
 with ctime('test_v8'):
-    r8 = test_v8(c, n_threads=4)
+    r8 = test_v8(c)
 del r8
 
 
