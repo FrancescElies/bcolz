@@ -17,8 +17,10 @@ import tempfile
 import json
 import datetime
 
+cimport openmp
 from cython.parallel import parallel, prange
 from libc.stdlib cimport abort, malloc, free
+from libc.stdio cimport printf
 
 import numpy as np
 cimport numpy as np
@@ -2724,6 +2726,32 @@ cpdef test_v6(carray c):
         base += chunklen
 
     return r
+
+cpdef test_v7(carray c, num_threads=None):
+    cdef:
+        Py_ssize_t i, j
+        int _num_threads
+        np.npy_int64 blen, base, chunklen, len_block
+        ndarray[np.npy_int64] block, r
+
+    _num_threads = num_threads
+    chunklen = c.chunklen
+    r = np.zeros(c.len, dtype='int64')
+
+    base = 0
+
+    for n, block in enumerate(bcolz.iterblocks(c)):
+        len_block = len(block)
+
+        with nogil, cython.boundscheck(False), cython.wraparound(False):
+            for j in prange(len_block, schedule='static',
+                            num_threads=_num_threads):
+                r[base + j] = block[j]
+
+        base += chunklen
+
+    return r
+
 
 ## Local Variables:
 ## mode: python
