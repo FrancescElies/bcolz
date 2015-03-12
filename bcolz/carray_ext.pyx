@@ -2809,6 +2809,34 @@ cpdef test_v8(carray c):
     return sum
 
 
+cdef inline void _test_v9_helper_nogil(int start, int end) nogil:
+    cdef double tmp = 0.0
+    printf("start=%d end=%d\n", start, end)
+
+def test_v9_helper_nogil(int start, int end):
+    with nogil:
+        _test_v9_helper_nogil(start, end)
+
+cpdef test_v9(carray c):
+
+    chunklen = c.chunklen
+    nchunks = c.nchunks
+    end_last_chunk = nchunks * chunklen
+    num_leftovers = c.len % c.chunklen
+    len_c = c.len
+
+    threads = []
+    for start in range(0, len_c, chunklen):
+        if start == end_last_chunk:
+            blen = num_leftovers
+        else:
+            blen = chunklen
+        end = start + blen
+        t = threading.Thread(target=test_v9_helper_nogil, args=(start, end))
+        threads.append(t)
+        t.start()
+
+
 ## Local Variables:
 ## mode: python
 ## tab-width: 4
