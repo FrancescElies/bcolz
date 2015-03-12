@@ -17,12 +17,10 @@ import tempfile
 import json
 import datetime
 
-cimport openmp
-from openmp cimport omp_lock_t, omp_init_lock, omp_set_lock, \
-    omp_unset_lock, omp_destroy_lock, omp_get_num_threads, omp_get_num_procs
+from openmp cimport *
 from cython.parallel import parallel, prange, threadid
 from libc.stdlib cimport abort, malloc, free
-from libc.stdio cimport printf
+from libc.stdio cimport printf,fprintf, stdout
 
 import threading
 import numpy as np
@@ -2758,7 +2756,7 @@ cpdef test_v7(carray c, n_threads=4):
 cpdef test_v8(carray c):
     cdef Py_ssize_t i, j
     cdef int _num_threads, N, chunklen, len_block, _id
-    cdef np.npy_int64 blen, base,
+    cdef np.npy_int64 blen, base, base_copy
     cdef ndarray[np.npy_int64] block, r
     cdef omp_lock_t lock
 
@@ -2775,17 +2773,25 @@ cpdef test_v8(carray c):
 
     omp_init_lock(&lock)
 
+    print 'c.len', c.len
     # TODO: solve segmentation fault, consider using openmp functions
     with nogil, parallel(num_threads=_num_threads):
         for i in prange(N):
             _id = threadid()
             omp_set_lock(&lock)
             with gil:
-                base = i * chunklen
                 block = iter.next()
                 len_block = len(block)
             omp_unset_lock(&lock)
-            printf('[%d]%d %d %d\n', _id, base, i, len_block)
+
+            if i == N - 1:
+                base = i * chunklen
+            else:
+                base = (i - 1) * chunklen + len_block
+
+            printf('[%d] i=%d base=%d base+len=%d, len=%d\n',
+                   _id, i, base, base + len_block, len_block)
+
 
             # for j in prange(len_block):
             #     printf('%d %d', base, j)

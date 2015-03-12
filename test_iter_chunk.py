@@ -47,11 +47,9 @@ del r6
 
 with ctime('test_v7'):
     r7 = test_v7(c, n_threads=4)
-del r7
 
 with ctime('test_v8'):
     r8 = test_v8(c)
-del r8
 
 
 # assert np.array_equal(r1, r2)
@@ -59,4 +57,5 @@ del r8
 # assert np.array_equal(r1, r4)
 # assert np.array_equal(r1, r5)
 # assert np.array_equal(r1, r6)
-# assert np.array_equal(r1, r7)
+print r8
+assert np.array_equal(r8, r7)
