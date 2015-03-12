@@ -2753,6 +2753,7 @@ cpdef test_v7(carray c, n_threads=4):
 
     return r
 
+# TODO: not working
 cpdef test_v8(carray c):
     cdef Py_ssize_t start, j
     cdef int _num_threads, chunklen, nchunks, \
