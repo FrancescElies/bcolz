@@ -2754,10 +2754,10 @@ cpdef test_v7(carray c, n_threads=4):
     return r
 
 cpdef test_v8(carray c):
-    cdef Py_ssize_t i, j
+    cdef Py_ssize_t start, j
     cdef int _num_threads, chunklen, nchunks, \
         len_block, len_c, len_c_ext, _id, num_leftovers, end, end_last_chunk
-    cdef np.npy_int64 blen, base, base_copy
+    cdef np.npy_int64 blen, sum_local, sum
     cdef ndarray[np.npy_int64] block, r
     cdef omp_lock_t lock
 
@@ -2781,31 +2781,31 @@ cpdef test_v8(carray c):
         len_c_ext = len_c
 
     print 'len_c =', len_c
+    print 'len_c_ext', len_c_ext
     print 'chunklen =', chunklen
     print 'num_leftovers =', num_leftovers
     print '_num_threads =', _num_threads
 
     with nogil, parallel(num_threads=_num_threads):
-        for i in prange(0, len_c_ext, chunklen):
-            _id = threadid()
-            if i == end_last_chunk:
+        for start in prange(0, len_c_ext, chunklen):
+            if start == end_last_chunk:
                 blen = num_leftovers
             else:
                 blen = chunklen
             with gil:
-                block = np.empty(c.chunklen, dtype='int64')
-                c._getrange(i, blen, block)
+                block = np.empty(blen, dtype='int64')
+                c._getrange(start, blen, block)
+                # print block
 
-            end = i + blen
+            sum_local = 0
+            j = 0
+            for j in prange(blen):
+                printf("%d %d",j, blen)
+                sum_local += block[j]
 
-            printf('[%d] i=%d end=%d\n', _id, i, end)
+            sum += sum_local  # reduced
 
-
-            # for j in prange(len_block):
-            #     printf('%d %d', base, j)
-            #     r[base + j] = block[j]
-
-    return r
+    return sum
 
 
 ## Local Variables:

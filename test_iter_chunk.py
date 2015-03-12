@@ -15,11 +15,11 @@ def ctime(message=None):
     print message + ":\t", \
           round(time.time() - t, 5), "sec"
 
-n = 2000000 + 3333
+n = 105
 
-c = bz.fromiter((x for x in xrange(n)), count=n, dtype='int64')
+c = bz.fromiter((x for x in xrange(n)), count=n, dtype='int64', chunklen=10)
 print c
-
+print()
 
 # with ctime('test_v1'):
 #     r1 = test_v1(c)
@@ -48,14 +48,8 @@ del r6
 with ctime('test_v7'):
     r7 = test_v7(c, n_threads=4)
 
-with ctime('test_v8'):
-    r8 = test_v8(c)
+# with ctime('test_v8'):
+#     r8 = test_v8(c)
 
 
 # assert np.array_equal(r1, r2)
-# assert np.array_equal(r1, r3)
-# assert np.array_equal(r1, r4)
-# assert np.array_equal(r1, r5)
-# assert np.array_equal(r1, r6)
-print r8
-assert np.array_equal(r8, r7)
