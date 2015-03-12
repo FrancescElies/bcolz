@@ -2810,13 +2810,13 @@ cpdef test_v8(carray c):
 
 
 cdef inline void _test_v9_helper_nogil(int start, int end,
-                                       np.npy_int64 * result) nogil:
+                                       np.npy_int64 *result) nogil:
     cdef double tmp = 0.0
     printf("start=%d end=%d\n", start, end)
 
 def test_v9_helper_nogil(int start, int end, ndarray[np.npy_int64] result):
     with nogil:
-        _test_v9_helper_nogil(start, end, <np.npy_int64 *>result.data)
+        _test_v9_helper_nogil(start, end, <np.npy_int64 *> result.data)
 
 cpdef test_v9(carray c):
     cdef ndarray[np.npy_int64]  result
@@ -2836,7 +2836,8 @@ cpdef test_v9(carray c):
         else:
             blen = chunklen
         end = start + blen
-        t = threading.Thread(target=test_v9_helper_nogil, args=(start, end, result))
+        t = threading.Thread(target=test_v9_helper_nogil,
+                             args=(start, end, result))
         threads.append(t)
         t.start()
 
