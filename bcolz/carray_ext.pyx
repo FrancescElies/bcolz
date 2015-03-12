@@ -2755,7 +2755,8 @@ cpdef test_v7(carray c, n_threads=4):
 
 cpdef test_v8(carray c):
     cdef Py_ssize_t i, j
-    cdef int _num_threads, N, chunklen, len_block, _id
+    cdef int _num_threads, chunklen, nchunks, \
+        len_block, len_c, len_c_ext, _id, num_leftovers, end, end_last_chunk
     cdef np.npy_int64 blen, base, base_copy
     cdef ndarray[np.npy_int64] block, r
     cdef omp_lock_t lock
@@ -2763,34 +2764,41 @@ cpdef test_v8(carray c):
     chunklen = c.chunklen
     r = np.zeros(c.len, dtype='int64')
 
-    if (c.len % c.chunklen) == 0:
-        N = c.nchunks
-    else:
-        N = c.nchunks + 1
+    nchunks = c.nchunks
+    end_last_chunk = nchunks * chunklen
+    num_leftovers = c.len % c.chunklen
 
     _num_threads = omp_get_num_procs()
     iter = bcolz.iterblocks(c)
 
     omp_init_lock(&lock)
+    len_c = c.len
 
-    print 'c.len', c.len
-    # TODO: solve segmentation fault, consider using openmp functions
+    # workaround: prange not hadnling leftovers
+    if num_leftovers > 0:
+        len_c_ext = (nchunks + 1) * chunklen
+    else:
+        len_c_ext = len_c
+
+    print 'len_c =', len_c
+    print 'chunklen =', chunklen
+    print 'num_leftovers =', num_leftovers
+    print '_num_threads =', _num_threads
+
     with nogil, parallel(num_threads=_num_threads):
-        for i in prange(N):
+        for i in prange(0, len_c_ext, chunklen):
             _id = threadid()
-            omp_set_lock(&lock)
-            with gil:
-                block = iter.next()
-                len_block = len(block)
-            omp_unset_lock(&lock)
-
-            if i == N - 1:
-                base = i * chunklen
+            if i == end_last_chunk:
+                blen = num_leftovers
             else:
-                base = (i - 1) * chunklen + len_block
+                blen = chunklen
+            with gil:
+                block = np.empty(c.chunklen, dtype='int64')
+                c._getrange(i, blen, block)
 
-            printf('[%d] i=%d base=%d base+len=%d, len=%d\n',
-                   _id, i, base, base + len_block, len_block)
+            end = i + blen
+
+            printf('[%d] i=%d end=%d\n', _id, i, end)
 
 
             # for j in prange(len_block):
