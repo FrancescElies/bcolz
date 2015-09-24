@@ -1,0 +1,274 @@
+{
+    "benchmarks": {
+        "arange.Suite.time_arange": {
+            "code": "def time_arange(self):\n    ac = bcolz.arange(self.start, self.stop, self.step, dtype=self.dtype)\n", 
+            "goal_time": 2.0, 
+            "name": "arange.Suite.time_arange", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_sum_01": {
+            "code": "def time_sum_01(self):\n    return sum([x for x in ct['f0'].where(c)])\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_sum_01", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_sum_02": {
+            "code": "def time_sum_02(self):\n    return sum(x for x in ct['f0'].where(c))\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_sum_02", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_sum_03": {
+            "code": "def time_sum_03(self):\n    return bcolz.fromiter((x for x in ct['f0'].where(c)),\n                          dtype=ct['f0'].dtype, count=c.wheretrue().sum()).sum()\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_sum_03", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_sum_na_01": {
+            "code": "def time_sum_na_01(self):\n    # sum with no NA's\n    # x==x check to leave out NA values\n    return sum([x for x in ct['f0'].where(c) if x == x])\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_sum_na_01", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_sum_na_02": {
+            "code": "def time_sum_na_02(self):\n    # sum with no NA's\n    # x==x check to leave out NA values\n    return sum((x for x in ct['f0'].where(c) if x == x))\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_sum_na_02", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_tolist": {
+            "code": "def time_tolist(self):\n    return (ct['f0'][sorted_index]).tolist()\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_tolist", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_where_01": {
+            "code": "def time_where_01(self):\n    return [x.f0 for x in ct.where(b)]\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_where_01", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_where_02": {
+            "code": "def time_where_02(self):\n    return [x.f0 for x in ct.where(c)]\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_where_02", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_where_03": {
+            "code": "def time_where_03(self):\n    return [x for x in ct['f0'].where(b)]\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_where_03", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "column_iter.Suite.time_where_04": {
+            "code": "def time_where_04(self):\n    return [x for x in ct['f0'].where(c)]\n", 
+            "goal_time": 2.0, 
+            "name": "column_iter.Suite.time_where_04", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }, 
+        "concat.Suite.time_concatenate": {
+            "code": "def time_concatenate(self):\n    if Suite.style == 'numpy':\n        for _ in xrange(Suite.T):\n            Suite.r = numpy.concatenate(Suite.a, 0)\n    elif Suite.style == 'concat':\n        for _ in xrange(Suite.T):\n            Suite.r = concat(Suite.a)\n    elif Suite.style == 'bcolz':\n        for _ in xrange(Suite.T):\n            Suite.r = append(Suite.a, Suite.clevel)\n", 
+            "goal_time": 2.0, 
+            "name": "concat.Suite.time_concatenate", 
+            "number": 0, 
+            "param_names": [], 
+            "params": [], 
+            "repeat": 0, 
+            "timeout": 60.0, 
+            "type": "time", 
+            "unit": "seconds"
+        }
+    }, 
+    "date_to_hash": {
+        "1282923223000": "2c61f78c", 
+        "1283705848000": "58e68325", 
+        "1284047546000": "7403e039", 
+        "1284392114000": "7a878b74", 
+        "1287736471000": "0feec3cc", 
+        "1291984330000": "2b2f5e68", 
+        "1292863238000": "42d779e1", 
+        "1292916469000": "c1f41479", 
+        "1292953094000": "6338f060", 
+        "1340082424000": "aac775ab", 
+        "1344806730000": "0edeefce", 
+        "1345205524000": "1c234e38", 
+        "1345539556000": "3398ac5e", 
+        "1403903608000": "ef5f4d7f", 
+        "1405413717000": "5b0796a2", 
+        "1405523143000": "66249366", 
+        "1405706117000": "a47eccec", 
+        "1405928095000": "bf020a98", 
+        "1408555199000": "c235435b", 
+        "1413493562000": "b5c5eff2", 
+        "1420833242000": "36ae3d8a", 
+        "1432716723000": "c8044da3", 
+        "1436711089000": "965998ae", 
+        "1442250277000": "31a4fa87", 
+        "1442852507000": "278cde90", 
+        "1442853603000": "d33cdb4a", 
+        "1442855709000": "8c670abb", 
+        "1442872795000": "4e79df21", 
+        "1442907710000": "249719a6", 
+        "1443045276000": "1c2ca316", 
+        "1443047143000": "5eeecda5", 
+        "1443047163000": "f6fecdf4", 
+        "1443047176000": "e56cc249", 
+        "1443077343000": "3c0603f2"
+    }, 
+    "machines": {
+        "xesc-UL30A": {
+            "arch": "x86_64", 
+            "cpu": "Genuine Intel(R) CPU           U7300  @ 1.30GHz", 
+            "machine": "xesc-UL30A", 
+            "os": "Linux 3.13.0-37-generic", 
+            "ram": "4013076", 
+            "version": 1
+        }
+    }, 
+    "params": {
+        "arch": [
+            "x86_64"
+        ], 
+        "branch": [
+            "master"
+        ], 
+        "cpu": [
+            "Genuine Intel(R) CPU           U7300  @ 1.30GHz"
+        ], 
+        "cython": [
+            null
+        ], 
+        "machine": [
+            "xesc-UL30A"
+        ], 
+        "numexpr": [
+            null
+        ], 
+        "numpy": [
+            null
+        ], 
+        "os": [
+            "Linux 3.13.0-37-generic"
+        ], 
+        "pandas": [
+            null
+        ], 
+        "python": [
+            "2.6", 
+            "2.7", 
+            "3.3"
+        ], 
+        "ram": [
+            "4013076"
+        ]
+    }, 
+    "project": "bcolz", 
+    "project_url": "https://github.com/Blosc/bcolz", 
+    "show_commit_url": "http://github.com/blosc/bcolz/commit/", 
+    "tags": {
+        "0.11.0": 1441813678000, 
+        "esc_midnight_v0.0": 1414071378000, 
+        "gb_non_good_solution": 1411738051000, 
+        "group_bool_arrayv0.0": 1413984925000, 
+        "group_bool_arrayv0.0.1": 1413986462000, 
+        "group_bool_arrayv0.0.2": 1413988466000, 
+        "group_bool_arrayv0.1.0": 1414001398000, 
+        "groupby_v0.1": 1413900294000, 
+        "groupby_v0.1.1": 1413966261000, 
+        "groupby_v0.1.2": 1414099720000, 
+        "groupby_v0.1.3": 1414103401000, 
+        "groupby_w_filter_v0.1.1": 1414423284000, 
+        "groupby_w_filter_v0.1.2": 1414488403000, 
+        "groupby_w_filter_v0.1.3": 1414490618000, 
+        "groupby_w_filter_v0.1.4_segFault": 1414576935000, 
+        "groupby_w_filter_v0.1.5": 1414709674000, 
+        "groupby_w_filter_v0.1.6": 1415026928000, 
+        "groupby_w_filter_v0.1.7": 1415101228000, 
+        "segFault_iter_ok_hdf5_ko": 1414773021000, 
+        "segFault_iter_ok_hdf5_ok": 1414778552000, 
+        "v0.0_groupsort": 1413624509000, 
+        "v0.10.0": 1436711089000, 
+        "v0.3": 1293040307000, 
+        "v0.3.1": 1295352605000, 
+        "v0.3.2": 1296844327000, 
+        "v0.4": 1297446882000, 
+        "v0.5": 1345558430000, 
+        "v0.5.1": 1345803087000, 
+        "v0.7.0": 1406039392000, 
+        "v0.7.1": 1406715278000, 
+        "v0.7.2": 1413129134000, 
+        "v0.7.3": 1420402524000, 
+        "v0.8.0": 1420831412000, 
+        "v0.8.1": 1425142905000, 
+        "v0.9.0": 1431878391000, 
+        "v0_where_terms_groupby": 1412001354000, 
+        "where_terms_cython": 1411738051000, 
+        "where_terms_groupby_v0.1": 1412172255000
+    }
+}
